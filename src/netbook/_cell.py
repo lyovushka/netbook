@@ -7,9 +7,9 @@ import dataclasses
 import io
 import typing as tp
 
-import cairosvg
-
 import nbformat
+
+import pyvips
 
 import rich.ansi
 import rich.text
@@ -119,7 +119,7 @@ class DisplayData(Output):
             image_key = self._find_image()
             if image_key:
                 image_bytes = (
-                    cairosvg.svg2png(self.data[image_key])
+                    pyvips.Image.svgload_buffer(self.data[image_key].encode()).pngsave_buffer()
                     if image_key == "image/svg+xml"
                     else base64.b64decode(self.data[image_key])
                 )

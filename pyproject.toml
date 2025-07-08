@@ -5,10 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "cairosvg>=2.8.2",
     "ipykernel>=6.29.5",
     "jupyter-client>=8.6.3",
     "nbformat>=5.10.4",
+    "pyvips[binary]>=3.0.0",
     "textual-image[textual]>=0.8.1",
     "textual[syntax]>=3.4.0",
 ]
