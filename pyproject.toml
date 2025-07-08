@@ -1,0 +1,48 @@
+[project]
+name = "netbook"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "cairosvg>=2.8.2",
+    "ipykernel>=6.29.5",
+    "jupyter-client>=8.6.3",
+    "nbformat>=5.10.4",
+    "textual-image[textual]>=0.8.1",
+    "textual[syntax]>=3.4.0",
+]
+
+[project.scripts]
+jupyter-netbook = "netbook:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "coverage>=7.9.1",
+    "matplotlib>=3.10.1",
+    "pandas>=2.2.3",
+    "pyinstrument>=5.0.2",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-mock>=3.14.1",
+    "textual-dev>=1.7.0",
+    "tqdm>=4.67.1",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.report]
+exclude_also = [
+    # Don't complain about abstract methods, they aren't run.
+    "@(abc\\.)?abstractmethod",
+    # Don't complain about typechecking.
+    "if tp.TYPE_CHECKING",
+    # This is often used to handle cases that shouldn't happen.
+    "case _"
+]
