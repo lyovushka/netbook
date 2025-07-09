@@ -2,6 +2,7 @@ import asyncio
 import collections
 import dataclasses
 import pathlib
+import sys
 import time
 import typing as tp
 
@@ -36,6 +37,8 @@ class JupyterTextualApp(textual.app.App):
     AUTO_FOCUS = "CellTextArea"
 
     REPEAT_KEY_PRESS_TIME = 0.8
+
+    CMDTRL = "super" if sys.platform == "darwin" else "ctrl"
 
     show_line_numbers: textual.reactive.reactive[bool] = textual.reactive.reactive(True)
 
@@ -332,9 +335,9 @@ class JupyterTextualApp(textual.app.App):
 
     BINDINGS = [
         textual.binding.Binding("f", "find_and_replace", "find and replace"),
-        textual.binding.Binding("ctrl+shift+f,ctrl+shift+p,p", "command_palette", "open the command palette"),
+        textual.binding.Binding(f"{CMDTRL}+shift+f,{CMDTRL}+shift+p,p", "command_palette", "open the command palette"),
         textual.binding.Binding("shift+enter", "run_cell_select_below", "run cell, select below"),
-        textual.binding.Binding("ctrl+enter", "run_cell", "run cell"),
+        textual.binding.Binding(f"ctrl+enter,{CMDTRL}+enter", "run_cell", "run cell"),
         textual.binding.Binding("alt+enter", "run_cell_and_insert_below", "run cell and insert below"),
         textual.binding.Binding("y", "change_cell_to('code')", "change cell to code"),
         textual.binding.Binding("m", "change_cell_to('markdown')", "change cell to markdown"),
@@ -343,7 +346,7 @@ class JupyterTextualApp(textual.app.App):
         textual.binding.Binding("j,down", "focus_cell_down", "select cell below"),
         textual.binding.Binding("K,shift+up", "extend_selected_cells_above", "extend selected cells above"),
         textual.binding.Binding("J,shift+down", "extend_selected_cells_below", "extend selected cells below"),
-        textual.binding.Binding("ctrl+a", "select_all_cells", "select all cells"),
+        textual.binding.Binding(f"{CMDTRL}+a", "select_all_cells", "select all cells"),
         textual.binding.Binding("ctrl+shift+up", "move_selected_cells_up", "move selected cells up"),
         textual.binding.Binding("ctrl+shift+down", "move_selected_cells_down", "move selected cells down"),
         textual.binding.Binding("a", "insert_cell_above", "insert cell above"),
@@ -363,7 +366,7 @@ class JupyterTextualApp(textual.app.App):
         textual.binding.Binding("L", "toggle_line_numbers_in_all_cells", "toggle line numbers in all cells"),
         textual.binding.Binding("o", "toggle_output", "toggle output of selected cells"),
         textual.binding.Binding("O", "toggle_output_scrolling", "toggle output scrolling of selected cells"),
-        textual.binding.Binding("s,ctrl+s", "save", "save"),
+        textual.binding.Binding(f"s,{CMDTRL}+s", "save", "save"),
         textual.binding.Binding("h", "toggle_help", "toggle help"),
         textual.binding.Binding("i", "try_interrupt_kernel", "interrupt the kernel", key_display="i,i"),
         textual.binding.Binding("0", "try_restart_kernel", "restart the kernel", key_display="0,0"),

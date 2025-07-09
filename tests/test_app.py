@@ -105,7 +105,7 @@ async def test_copy_paste(pilot: textual.pilot.Pilot):
     assert app.cells[0].source.text == ""
 
     # Test delete
-    await pilot.press("ctrl+a", "d", "d")
+    await pilot.press(f"{app.CMDTRL}+a", "d", "d")
     await pilot.pause()
     # should insert a new empty cell
     assert len(app.cells) == 1
