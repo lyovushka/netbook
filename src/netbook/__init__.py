@@ -1,4 +1,5 @@
 import pathlib
+import sys
 
 import jupyter_client.consoleapp
 import jupyter_core.application
@@ -6,10 +7,11 @@ import jupyter_core.utils
 
 import nbformat
 
+import textual
+
 import traitlets
 
 from netbook._textual_app import JupyterTextualApp
-
 
 class JupyterNetbook(jupyter_core.application.JupyterApp, jupyter_client.consoleapp.JupyterConsoleApp):
     name = "jupyter-netbook"
@@ -22,7 +24,14 @@ class JupyterNetbook(jupyter_core.application.JupyterApp, jupyter_client.console
     kernel_client_class = jupyter_client.asynchronous.AsyncKernelClient
     # kernel_manager_class = jupyter_client.manager.AsyncKernelManager
 
+    log = textual.log
+
     def initialize(self, argv):
+        if sys.platform == "win32":
+            # see https://github.com/zeromq/pyzmq/issues/1423
+            import asyncio
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
         jupyter_core.application.JupyterApp.initialize(self, argv)
         if self._dispatching:
             return
