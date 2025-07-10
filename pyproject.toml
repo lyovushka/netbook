@@ -10,7 +10,7 @@ dependencies = [
     "nbformat>=5.10.4",
     "pyvips[binary]>=3.0.0",
     "textual-image[textual]>=0.8.1",
-    "textual[syntax]>=3.4.0",
+    "textual[syntax]>=3.7.1",
 ]
 
 [project.scripts]

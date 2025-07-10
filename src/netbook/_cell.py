@@ -267,7 +267,10 @@ class MarkdownCell(Cell):
             self.markdown.remove_class("hidden")
 
     def __init__(self, source: str = "", *, classes: str | None = None) -> None:
-        super().__init__(CellTextArea.code_editor(source, language="markdown", soft_wrap=True), classes=classes)
+        super().__init__(
+            CellTextArea.code_editor(source, language="markdown", soft_wrap=True, highlight_cursor_line=False),
+            classes=classes,
+        )
         self.markdown = textual.widgets.Markdown()
 
     def on_text_area_changed(self, event: textual.widgets.TextArea.Changed):
@@ -351,7 +354,9 @@ class CodeCell(Cell):
 
     def __init__(self, source: str = "", *, classes: str | None = None) -> None:
         # TODO: get the language from the kernel
-        super().__init__(CodeTextArea.code_editor(source, language="python"), classes=classes)
+        super().__init__(
+            CodeTextArea.code_editor(source, language="python", highlight_cursor_line=False), classes=classes
+        )
         self.output_area = textual.containers.Container(classes="codeoutput noncollapsed")
         self.all_outputs: list[Output] = []
         self.all_outputs_container = textual.containers.Vertical()
