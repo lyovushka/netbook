@@ -1,6 +1,7 @@
 import netbook
 import textual.pilot
 import pytest_mock
+import nbformat
 
 
 async def test_actions(pilot: textual.pilot.Pilot, mocker: pytest_mock.MockerFixture):
@@ -202,3 +203,26 @@ async def test_kernel_actions(pilot: textual.pilot.Pilot, mocker: pytest_mock.Mo
     app.action_restart_and_run_all()
     assert app.kernel_manager.restart_kernel.call_count == 2
     mock_execute.assert_called_once()
+
+
+async def test_load_language(mocker: pytest_mock.MockerFixture):
+    # Test loading lanugage with available tree sitter package
+    nb = nbformat.v4.new_notebook(cells=[nbformat.v4.new_code_cell()])
+    km = mocker.Mock()
+    km.kernel_spec.language = "julia"
+    kc = mocker.Mock()
+    kc.execute_interactive = mocker.AsyncMock()
+    app = netbook.JupyterTextualApp(km, kc, "", nb)
+    assert app.tree_sitter_language is not None
+    assert app.language_highlights_query != ""
+    async with app.run_test() as pilot:
+        pilot.pause()
+        assert app.cells[0].source.language == "julia"
+
+    # Test when we can't load the language
+    km.kernel_spec.language = "R"
+    mocker.patch("netbook._textual_app.JupyterTextualApp.notify")
+    app = netbook.JupyterTextualApp(km, kc, "", nb)
+    app.notify.assert_called_once_with(
+        "Syntax highlighting is not available for R. Try installing the package `tree_sitter_r`"
+    )

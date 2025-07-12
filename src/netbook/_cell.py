@@ -18,6 +18,7 @@ import textual.app
 import textual.binding
 import textual.containers
 import textual.message
+import textual.widgets.text_area
 
 import textual_image.widget
 
@@ -353,10 +354,14 @@ class CodeCell(Cell):
             self.output_area.add_class("noncollapsed")
 
     def __init__(self, source: str = "", *, classes: str | None = None) -> None:
-        # TODO: get the language from the kernel
-        super().__init__(
-            CodeTextArea.code_editor(source, language="python", highlight_cursor_line=False), classes=classes
-        )
+        language = self.app.kernel_manager.kernel_spec.language.lower()
+        initial_language = language if language in textual.widgets.text_area.BUILTIN_LANGUAGES else None
+        text_area = CodeTextArea.code_editor(source, language=initial_language, highlight_cursor_line=False)
+        if language not in textual.widgets.text_area.BUILTIN_LANGUAGES and self.app.language_highlights_query:
+            text_area.register_language(language, self.app.tree_sitter_language, self.app.language_highlights_query)
+            text_area.language = language
+
+        super().__init__(text_area, classes=classes)
         self.output_area = textual.containers.Container(classes="codeoutput noncollapsed")
         self.all_outputs: list[Output] = []
         self.all_outputs_container = textual.containers.Vertical()

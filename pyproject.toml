@@ -31,6 +31,7 @@ dev = [
     "pytest-mock>=3.14.1",
     "textual-dev>=1.7.0",
     "tqdm>=4.67.1",
+    "tree-sitter-julia>=0.23.1",
 ]
 
 [tool.pytest.ini_options]

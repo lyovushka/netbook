@@ -13,6 +13,7 @@ import traitlets
 
 from netbook._textual_app import JupyterTextualApp
 
+
 class JupyterNetbook(jupyter_core.application.JupyterApp, jupyter_client.consoleapp.JupyterConsoleApp):
     name = "jupyter-netbook"
     description = """
@@ -27,9 +28,14 @@ class JupyterNetbook(jupyter_core.application.JupyterApp, jupyter_client.console
     log = textual.log
 
     def initialize(self, argv):
+        if not hasattr(self.log, "exception"):
+            # Jupyter requires self.log.exception
+            self.log.exception = self.log.error
+
         if sys.platform == "win32":
             # see https://github.com/zeromq/pyzmq/issues/1423
             import asyncio
+
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
         jupyter_core.application.JupyterApp.initialize(self, argv)

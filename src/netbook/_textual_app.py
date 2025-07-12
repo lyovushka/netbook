@@ -1,6 +1,7 @@
 import asyncio
 import collections
 import dataclasses
+import importlib
 import pathlib
 import sys
 import time
@@ -15,8 +16,11 @@ import rich.console
 import textual.app
 import textual.containers
 import textual.widgets
+import textual.widgets.text_area
 import textual.binding
 import textual._border
+
+import tree_sitter
 
 from netbook._cell import Cell, CodeCell, RawCell, MarkdownCell
 from netbook._text_area import CellTextArea
@@ -80,11 +84,33 @@ class JupyterTextualApp(textual.app.App):
         self.repeat_key_count = 0
         self.last_key_press_time = time.monotonic()
 
+        self._load_language()
         self.call_after_refresh(lambda: self.queue_for_kernel(self._initialize_kernel))
 
     @property
     def cells(self) -> list[Cell]:
         return self.scroll.children
+
+    def _load_language(self) -> None:
+        self.tree_sitter_language, self.language_highlights_query = None, ""
+        language = self.kernel_manager.kernel_spec.language
+        ll = language.lower()
+        if ll not in textual.widgets.text_area.BUILTIN_LANGUAGES:
+            try:
+                m = importlib.import_module(f"tree_sitter_{ll}")
+                tree_sitter_language = tree_sitter.Language(m.language(), name=language)
+                if not hasattr(m, "HIGHLIGHTS_QUERY"):
+                    # Last ditch attempt to get the query. Works e.g. for julia
+                    m._get_query("HIGHLIGHTS_QUERY", "highlights.scm")
+                language_highlights_query = m.HIGHLIGHTS_QUERY
+            except (ModuleNotFoundError, AttributeError, OSError):
+                self.notify(
+                    f"Syntax highlighting is not available for {language}. Try installing the package `tree_sitter_{ll}`"
+                )
+            else:
+                # Only set those if everything was successful
+                self.tree_sitter_language = tree_sitter_language
+                self.language_highlights_query = language_highlights_query
 
     async def _initialize_kernel(self) -> None:
         if self.kernel_manager.kernel_spec.language == "python":
