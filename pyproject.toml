@@ -1,9 +1,12 @@
 [project]
 name = "netbook"
 version = "0.1.0"
-description = "Add your description here"
+description = "Jupyter notebook for terminal"
+homepage = "https://github.com/lyovushka/netbook"
+authors = [{author = "Levon Haykazyan", email = "haykazyan@zoho.com"}]
 readme = "README.md"
-requires-python = ">=3.13"
+license = "MIT"
+requires-python = ">=3.12"
 dependencies = [
     "ipykernel>=6.29.5",
     "jupyter-client>=8.6.3",
