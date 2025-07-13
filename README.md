@@ -7,6 +7,13 @@ Built on the excellent [textual](https://github.com/Textualize/textual) framewor
 
 ![demo](./docs/images/demo.gif)
 
+## Getting started
+
+```
+pip install netbook
+jupyter-netbook [my_notebook.ipynb]
+```
+
 ## Terminal Support
 
 | Terminal         | Status  | Image Support | Shift/Ctrl+Enter Support | Notes |
