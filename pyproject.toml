@@ -50,3 +50,6 @@ exclude_also = [
     # This is often used to handle cases that shouldn't happen.
     "case _"
 ]
+
+[tool.ruff]
+line-length=120

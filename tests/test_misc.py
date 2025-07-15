@@ -26,3 +26,6 @@ def test_cmdline(mocker: pytest_mock.MockerFixture):
     nb = netbook.JupyterNetbook()
     nb.initialize([])
     assert nb.textual_app.nbfile.startswith("Untitled")
+    nb = netbook.JupyterNetbook()
+    nb.initialize(["./tests/test.ipynb"])
+    assert nb.textual_app.nbfile == "./tests/test.ipynb"
