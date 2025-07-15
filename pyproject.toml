@@ -2,7 +2,6 @@
 name = "netbook"
 version = "0.1.0"
 description = "Jupyter notebook for terminal"
-homepage = "https://github.com/lyovushka/netbook"
 authors = [{author = "Levon Haykazyan", email = "haykazyan@zoho.com"}]
 readme = "README.md"
 license = "MIT"
@@ -15,6 +14,9 @@ dependencies = [
     "textual-image[textual]>=0.8.1",
     "textual[syntax]>=3.7.1",
 ]
+
+[project.urls]
+homepage = "https://github.com/lyovushka/netbook"
 
 [project.scripts]
 jupyter-netbook = "netbook:main"
