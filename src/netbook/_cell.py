@@ -34,13 +34,13 @@ class Counter(textual.widgets.Static):
     """Displays input or output execution count."""
 
     execution_count: textual.reactive.reactive[int | str] = textual.reactive.reactive(" ")
-
-    def __init__(self, format: str = "", *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs, markup=False)
-        self.format = format
+    format: textual.reactive.reactive[str] = textual.reactive.reactive("")
 
     def watch_execution_count(self, execution_count) -> None:
         self.update(self.format.format(execution_count))
+
+    def watch_format(self, format) -> None:
+        self.update(format.format(self.execution_count))
 
 
 class Output(textual.containers.Container):
@@ -336,6 +336,7 @@ class CodeCell(Cell):
     scrolled: textual.reactive.reactive[bool | None] = textual.reactive.reactive(None)  # None for auto
     collapsed: textual.reactive.reactive[bool] = textual.reactive.reactive(False)
     execution_count: textual.reactive.reactive[int | str] = textual.reactive.reactive(" ")
+    counter_format: textual.reactive.reactive[str] = textual.reactive.reactive("In [{}]:")
 
     def watch_scrolled(self, scrolled: bool | None) -> None:
         if scrolled or (scrolled is None and sum(self.output_heights.values()) > 105):
@@ -352,6 +353,9 @@ class CodeCell(Cell):
         else:
             self.output_area.remove_class("collapsed")
             self.output_area.add_class("noncollapsed")
+
+    def watch_execution_count(self, execution_count: int | str) -> None:
+        self.counter_format = "In [{}]:"
 
     def __init__(self, source: str = "", *, classes: str | None = None) -> None:
         language = self.app.kernel_manager.kernel_spec.language.lower()
@@ -370,6 +374,7 @@ class CodeCell(Cell):
         self.scroll_button.styles.line_pad = 0  # For some reason can't set this in css
         self.output_heights = {}
         self.n_active_executions = 0
+        self.last_executed = ""
 
     def on_double_click_button_double_pressed(self, event: DoubleClickButton.DoublePressed):
         assert not self.collapsed
@@ -401,6 +406,12 @@ class CodeCell(Cell):
     def cell_type(self) -> str:
         return "code"
 
+    def on_text_area_changed(self, message: textual.widgets.TextArea.Changed) -> None:
+        if self.execution_count != " " and message.text_area.text != self.last_executed:
+            self.counter_format = "In∙[{}]:"
+        else:
+            self.counter_format = "In [{}]:"
+
     def on_output_resized(self, message: Output.Resized) -> None:
         self.output_heights[message.output] = message.size.height
 
@@ -428,7 +439,7 @@ class CodeCell(Cell):
 
     def compose(self) -> tp.Iterable[textual.widgets.Widget]:
         with textual.containers.Horizontal():
-            yield Counter("In [{}]:", classes="input").data_bind(CodeCell.execution_count)
+            yield Counter(classes="input").data_bind(CodeCell.execution_count, format=CodeCell.counter_format)
             yield self.source
         with self.output_area:
             yield self.expand_button
@@ -486,6 +497,7 @@ class CodeCell(Cell):
         # TODO: do we need to await this?
         self.all_outputs_container.remove_children()
         self.all_outputs = []
+        self.watch_scrolled(self.scrolled)  # Updates `scrolled` class.
         self.collapsed = False
         self.scroll_button.label = ""
         if not self.source.text:
@@ -493,18 +505,21 @@ class CodeCell(Cell):
             return
         self.n_active_executions += 1
         self.execution_count = "*"
+        self.last_executed = self.source.text
 
         def task_done(task: asyncio.Task):
             self.n_active_executions -= 1
             if self.execution_count == "*" and (task.cancelled() or task.exception()):
                 self.execution_count = " "
 
-        self.app.queue_for_kernel(self._execute).add_done_callback(task_done)
+        # Snap the code at this time
+        code = self.source.text
+        self.app.queue_for_kernel(self._execute, code).add_done_callback(task_done)
 
-    async def _execute(self) -> None:
+    async def _execute(self, code: str) -> None:
         kernel_client = self.app.kernel_client
 
-        msg_id = kernel_client.execute(self.source.text)
+        msg_id = kernel_client.execute(code)
 
         poller = zmq.asyncio.Poller()
         iopub_socket = kernel_client.iopub_channel.socket
