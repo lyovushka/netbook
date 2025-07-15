@@ -1,3 +1,14 @@
+# A hack to make textual_image work in tests on windows
+import unittest.mock
+
+# Ensures textual_image.renderble.Image is set to UnicodeImage
+with unittest.mock.patch("sys.__stdout__", None):
+    import textual_image.renderable
+import textual_image._terminal
+
+# Hardcode the cell size - it throws on windows.
+setattr(textual_image._terminal.get_cell_size, "_result", textual_image._terminal.CellSize(10, 20))
+
 import netbook
 
 import nbformat
@@ -18,11 +29,16 @@ async def pilot(mocker):
 
 
 @pytest.fixture
-async def pilot_nb():
-    nb_app = netbook.JupyterNetbook()
-    nb_app.initialize(["./tests/test.ipynb"])
-    assert hasattr(nb_app, "textual_app")
-    app = nb_app.textual_app
+async def pilot_nb(mocker):
+    nbfile = "./tests/test.ipynb"
+    nb = nbformat.read(nbfile, nbformat.current_nbformat)
+    km = mocker.Mock()
+    km.kernel_name = nb.metadata.kernelspec.name
+    km.kernel_spec.language = nb.metadata.kernelspec.language
+    km.kernel_spec.display_name = nb.metadata.kernelspec.display_name
+    kc = mocker.Mock()
+    kc.execute_interactive = mocker.AsyncMock()
+    app = netbook.JupyterTextualApp(km, kc, nbfile, nb)
     async with app.run_test() as pilot:
         await pilot.pause()
         yield pilot

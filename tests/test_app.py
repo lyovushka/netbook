@@ -216,7 +216,7 @@ async def test_load_language(mocker: pytest_mock.MockerFixture):
     assert app.tree_sitter_language is not None
     assert app.language_highlights_query != ""
     async with app.run_test() as pilot:
-        pilot.pause()
+        await pilot.pause()
         assert app.cells[0].source.language == "julia"
 
     # Test when we can't load the language
