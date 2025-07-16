@@ -162,7 +162,7 @@ class Error(Output):
         )
 
     def compose(self) -> tp.Iterable[textual.widgets.Widget]:
-        with textual.containers.Horizontal():
+        with textual.containers.HorizontalScroll():
             yield textual.widgets.Static(rich.text.Text.from_ansi("\n".join(self.traceback)))
 
 
@@ -306,7 +306,7 @@ class MarkdownCell(Cell):
         super().action_edit_mode()
 
 
-class DoubleClickButton(textual.widgets.Button):
+class DoubleClickButton(textual.widgets.Button, can_focus=False):
     """A button that can be double clicked."""
 
     @dataclasses.dataclass
@@ -337,6 +337,10 @@ class CodeCell(Cell):
     collapsed: textual.reactive.reactive[bool] = textual.reactive.reactive(False)
     execution_count: textual.reactive.reactive[int | str] = textual.reactive.reactive(" ")
     counter_format: textual.reactive.reactive[str] = textual.reactive.reactive("In [{}]:")
+
+    @dataclasses.dataclass
+    class NewOutput(textual.events.Event):
+        code_cell: CodeCell
 
     def watch_scrolled(self, scrolled: bool | None) -> None:
         if scrolled or (scrolled is None and sum(self.output_heights.values()) > 105):
@@ -433,6 +437,7 @@ class CodeCell(Cell):
         if self.n_active_executions <= 1:
             self.all_outputs.append(output)
             if self.is_mounted:
+                self.post_message(self.NewOutput(self))
                 return self.all_outputs_container.mount(output)
             else:
                 return textual.widget.AwaitMount(self, [])
@@ -478,6 +483,7 @@ class CodeCell(Cell):
                     and self.all_outputs[-1].stream_name == content["name"]
                 ):
                     self.all_outputs[-1].text = self.all_outputs[-1].text + content["text"]
+                    self.post_message(self.NewOutput(self))
                 else:
                     await_mount = self.add_output(Stream(name=content["name"], text=content["text"]))
             case "error":

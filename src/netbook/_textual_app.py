@@ -33,7 +33,7 @@ textual._border.BORDER_CHARS["double"] = (
 )
 
 
-class JupyterTextualApp(textual.app.App):
+class JupyterTextualApp(textual.app.App, inherit_bindings=False):
     CSS_PATH = "netbook.css"
 
     COMMAND_PALETTE_BINDING = "ctrl+shift+f,ctrl+shift+p,p"
@@ -44,11 +44,16 @@ class JupyterTextualApp(textual.app.App):
 
     CMDTRL = "super" if sys.platform == "darwin" else "ctrl"
 
-    show_line_numbers: textual.reactive.reactive[bool] = textual.reactive.reactive(True)
+    show_line_numbers: textual.reactive.reactive[bool] = textual.reactive.reactive(True, init=False)
 
-    def _watch_show_line_numbers(self, show_line_numbers):
+    def _watch_show_line_numbers(self, show_line_numbers: bool) -> None:
         for cell in self.cells:
             cell.source.show_line_numbers = show_line_numbers
+
+    unsaved: textual.reactive.reactive[bool] = textual.reactive.reactive(False, init=False, repaint=False)
+
+    def _watch_unsaved(self, unsaved: bool) -> None:
+        self.unsaved_marker.update("•" if unsaved else "")
 
     @dataclasses.dataclass
     class CellDeletion:
@@ -79,6 +84,7 @@ class JupyterTextualApp(textual.app.App):
             [(x, x.lower()) for x in ["Code", "Markdown", "Raw"]], allow_blank=False, value=self.nb.cells[0].cell_type
         )
         self.kernel_state = textual.widgets.Static("○")
+        self.unsaved_marker = textual.widgets.Static("")
 
         self.repeat_key = None
         self.repeat_key_count = 0
@@ -252,14 +258,6 @@ class JupyterTextualApp(textual.app.App):
             self.repeat_key_count = 1
         self.last_key_press_time = now
 
-    def double_press(f):
-        async def new_f(self, *args, **kwargs):
-            if self.repeat_key_count == 2:
-                self.repeat_key = None
-                await f(self, *args, **kwargs)
-
-        return new_f
-
     def _on_app_focus(self, event: textual.events.AppFocus) -> None:
         focused_cell = self.cells[self.focused_cell_id]
         if focused_cell.has_class("input_focused"):
@@ -273,6 +271,15 @@ class JupyterTextualApp(textual.app.App):
     def _on_descendant_focus(self, event: textual.events.DescendantFocus) -> None:
         if not self.scroll.has_focus_within:
             self.cells[self.focused_cell_id].remove_class("input_focused")
+
+    def _on_text_area_selection_changed(self, event: textual.widgets.TextArea.SelectionChanged) -> None:
+        self._scroll_to_cursor(event.text_area)
+
+    def _on_text_area_changed(self, event: textual.widgets.TextArea.Changed) -> None:
+        self.unsaved = True
+
+    def _on_code_cell_new_output(self, message: CodeCell.NewOutput) -> None:
+        self.unsaved = True
 
     def _scroll_to_cursor(self, text_area: textual.widgets.TextArea):
         # scroll self.scroll so that the cursor is visible
@@ -293,9 +300,6 @@ class JupyterTextualApp(textual.app.App):
         # scroll_visible is quite finicky. It seems like Widget.scroll_visible works best.
         if scroll_visible and not self.screen.can_view_entire(cell):
             cell.scroll_visible(immediate=True, force=True)
-
-    def _on_text_area_selection_changed(self, event: textual.widgets.TextArea.SelectionChanged) -> None:
-        self._scroll_to_cursor(event.text_area)
 
     @tp.override
     def exit(
@@ -351,15 +355,16 @@ class JupyterTextualApp(textual.app.App):
             yield nf(textual.widgets.Button("\uf11c", action="app.command_palette"))
             yield textual.widgets.Static(" ", classes="spacer")
             with textual.containers.Horizontal(classes="title"):
-                yield textual.widgets.Static(
-                    f"{pathlib.Path(self.nbfile).stem} | {self.kernel_manager.kernel_spec.display_name} "
-                )
+                yield textual.widgets.Static(f"{pathlib.Path(self.nbfile).stem}")
+                yield self.unsaved_marker
+                yield textual.widgets.Static(f" | {self.kernel_manager.kernel_spec.display_name} ")
                 yield self.kernel_state
         with self.scroll:
             for i, cell in enumerate(self.nb.cells):
                 yield Cell.from_nbformat(cell).add_class("focused" if i == 0 else "below_focused")
 
     BINDINGS = [
+        textual.binding.Binding("ctrl+q", "quit", "quit the application"),
         textual.binding.Binding("f", "find_and_replace", "find and replace"),
         textual.binding.Binding(f"{CMDTRL}+shift+f,{CMDTRL}+shift+p,p", "command_palette", "open the command palette"),
         textual.binding.Binding("shift+enter", "run_cell_select_below", "run cell, select below"),
@@ -404,6 +409,12 @@ class JupyterTextualApp(textual.app.App):
             return self.cells[self.focused_cell_id].source.has_focus_within
         return True
 
+    def action_quit(self):
+        if self.repeat_key_count < 2 and self.unsaved:
+            self.notify("To quit without saving press `ctrl+q` twice", title="Unsaved changed", severity="warning")
+        else:
+            self.exit()
+
     def action_find_and_replace(self) -> None:
         self.notify("Not implemented yet")
 
@@ -419,12 +430,14 @@ class JupyterTextualApp(textual.app.App):
         else:
             # Not focusing the source here
             self._focus_cell(self.cells[end_id + 1], input_focused=False)
+        self.unsaved = True
 
     def action_run_cell(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         for cell in self.cells[start_id : end_id + 1]:
             cell.execute()
         self._focus_cell(self.cells[end_id])
+        self.unsaved = True
 
     async def action_run_cell_and_insert_below(self):
         start_id, end_id = self._get_selected_cells_range()
@@ -433,6 +446,7 @@ class JupyterTextualApp(textual.app.App):
         new_cell = CodeCell(classes="below_focused")
         await self.scroll.mount(new_cell, after=end_id)
         self._focus_cell(new_cell, input_focused=True)
+        self.unsaved = True
 
     async def action_change_cell_to(self, cell_type: str) -> None:
         start_id, end_id = self._get_selected_cells_range()
@@ -446,6 +460,7 @@ class JupyterTextualApp(textual.app.App):
                     await self.scroll.mount(new_cell, after=i)
                     await self.cells[i].remove()
                     cell_to_focus = new_cell
+                    self.unsaved = True
         self._focus_cell(cell_to_focus)
 
     def action_focus_cell_up(self) -> None:
@@ -481,6 +496,7 @@ class JupyterTextualApp(textual.app.App):
             self.focused_cell_id -= 1
             self.start_cell_id -= 1
             self.screen.scroll_to_widget(self.cells[self.focused_cell_id])
+            self.unsaved = True
 
     def action_move_selected_cells_down(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
@@ -495,18 +511,21 @@ class JupyterTextualApp(textual.app.App):
             self.focused_cell_id += 1
             self.start_cell_id += 1
             self.screen.scroll_to_widget(self.cells[self.focused_cell_id])
+            self.unsaved = True
 
     async def action_insert_cell_above(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         new_cell = CodeCell(classes="above_focused")
         await self.scroll.mount(new_cell, before=start_id)
         self._focus_cell(new_cell)
+        self.unsaved = True
 
     async def action_insert_cell_below(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         new_cell = CodeCell(classes="below_focused")
         await self.scroll.mount(new_cell, after=self.focused_cell_id)
         self._focus_cell(new_cell)
+        self.unsaved = True
 
     def action_copy_selected_cells(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
@@ -523,6 +542,7 @@ class JupyterTextualApp(textual.app.App):
             new_cell = CodeCell(classes="focused")
             await self.scroll.mount(new_cell)
         self._focus_cell(self.cells[min(start_id, len(self.cells) - 1)])
+        self.unsaved = True
 
     async def action_paste_cells_below(self) -> None:
         _, end_id = self._get_selected_cells_range()
@@ -530,6 +550,7 @@ class JupyterTextualApp(textual.app.App):
         await self.scroll.mount(*new_cells, after=end_id)
         if new_cells:
             self._focus_cell(new_cells[-1])
+            self.unsaved = True
 
     async def action_paste_cells_above(self) -> None:
         start_id, _ = self._get_selected_cells_range()
@@ -537,6 +558,7 @@ class JupyterTextualApp(textual.app.App):
         await self.scroll.mount(*new_cells, before=self.focused_cell_id)
         if new_cells:
             self._focus_cell(new_cells[0])
+            self.unsaved = True
 
     async def action_undo_cell_deletion(self) -> None:
         if len(self.cell_deletion_stack) > 0:
@@ -545,6 +567,17 @@ class JupyterTextualApp(textual.app.App):
             assert restore.position <= len(self.cells)
             await self.scroll.mount(*new_cells, before=restore.position)
             self._focus_cell(new_cells[-1])
+            self.unsaved = True
+
+    def double_press(f):
+        """Decorator to activate action if a key has been double pressed"""
+
+        async def new_f(self, *args, **kwargs):
+            if self.repeat_key_count == 2:
+                self.repeat_key = None
+                await f(self, *args, **kwargs)
+
+        return new_f
 
     @double_press
     async def action_delete_selected_cells(self) -> None:
@@ -559,6 +592,7 @@ class JupyterTextualApp(textual.app.App):
             new_cell = CodeCell(classes="focused")
             await self.scroll.mount(new_cell)
         self._focus_cell(self.cells[min(start_id, len(self.cells) - 1)])
+        self.unsaved = True
 
     async def action_merge_selected_cells(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
@@ -573,6 +607,7 @@ class JupyterTextualApp(textual.app.App):
         )
         await self.scroll.remove_children(self.cells[start_id + 1 : end_id + 1])
         self._focus_cell(self.cells[start_id])
+        self.unsaved = True
 
     def action_save(self) -> None:
         self.nb = nbformat.v4.new_notebook(
@@ -586,6 +621,7 @@ class JupyterTextualApp(textual.app.App):
             cells=[cell.to_nbformat() for cell in self.cells],
         )
         nbformat.write(self.nb, self.nbfile)
+        self.unsaved = False
         self.notify("Notebook Saved")
 
     def action_toggle_line_numbers(self) -> None:
@@ -601,12 +637,14 @@ class JupyterTextualApp(textual.app.App):
         for cell in self.cells[start_id : end_id + 1]:
             if isinstance(cell, CodeCell):
                 cell.collapsed = not cell.collapsed
+                self.unsaved = True
 
     def action_toggle_output_scrolling(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         for cell in self.cells[start_id : end_id + 1]:
             if isinstance(cell, CodeCell):
                 cell.scrolled = not cell.scrolled
+                self.unsaved = True
 
     def action_toggle_help(self) -> None:
         if self.screen.query("HelpPanel"):
@@ -638,6 +676,7 @@ class JupyterTextualApp(textual.app.App):
         self.action_restart_kernel()
         for cell in self.cells:
             cell.execute()
+            self.unsaved = True
 
     async def action_split_cell_at_cursor(self) -> None:
         focused_cell = self.cells[self.focused_cell_id]
@@ -663,3 +702,4 @@ class JupyterTextualApp(textual.app.App):
             await self.scroll.mount(*new_cells, before=self.focused_cell_id)
             focused_cell.source.text = nonempty_chunks[-1]
             self.focused_cell_id += len(nonempty_chunks) - 1
+            self.unsaved = True
