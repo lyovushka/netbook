@@ -159,15 +159,17 @@ Cell {
 		&.scrolled {
 			overflow: scroll scroll;
 			max-height: 18;
-			/* width: auto; */
 			Horizontal {
 				width: auto;
+				min-width: 1fr;
 			}
 			Vertical {
 				width: auto;
+				min-width: 1fr;
 			}
 			HorizontalScroll {
 				width: auto;
+				min-width: 1fr;
 			}
 		}
 	}

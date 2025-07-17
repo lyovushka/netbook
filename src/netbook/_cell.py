@@ -130,6 +130,8 @@ class DisplayData(Output):
                 image.styles.width = round(image._image_width / cell_size.width)
                 image.styles.height = round(image._image_height / cell_size.height)
                 yield image
+            elif self.data.get("text/markdown"):
+                yield textual.widgets.Markdown(self.data["text/markdown"])
             elif self.data.get("text/plain"):
                 yield textual.widgets.Static(self.ansi_to_rich(self.data["text/plain"]))
 
@@ -493,7 +495,7 @@ class CodeCell(Cell):
 
             def scroll_callback(widget):
                 if not self.screen.can_view_entire(widget):
-                    self.screen.scroll_to_widget(widget, center=True, force=True)
+                    self.screen.scroll_to_widget(widget, center=True, force=False)
 
             self.all_outputs[-1].call_after_refresh(scroll_callback, self.all_outputs[-1])
 
