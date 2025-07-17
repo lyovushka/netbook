@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matri.os }}
+    runs-on: ${{ matrix.os }}
     
     strategy:
       matrix:
