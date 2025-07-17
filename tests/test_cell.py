@@ -110,6 +110,11 @@ async def test_run_cell(pilot, mocker):
     assert len(app.cells[0].all_outputs) == 4
     assert app.cells[0].all_outputs[0].text == "  \nout\n  outout"
 
+    # edit the cell
+    app.cells[0].source.text = "new code"
+    await pilot.pause()
+    assert "∙" in app.cells[0].counter_format
+
     # Add a new cell
     await app.action_insert_cell_below()
     await pilot.pause()

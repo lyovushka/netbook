@@ -15,8 +15,26 @@ async def test_save(pilot_nb: textual.pilot.Pilot, mocker: pytest_mock.MockerFix
     mock_write.assert_called_once()
     assert mock_write.call_args.args[1] == "./tests/test.ipynb"
     nb = mock_write.call_args.args[0]
-    assert len(nb.cells) == 6
-    assert tuple(cell.cell_type for cell in nb.cells) == ("code",) * 4 + ("markdown", "raw")
+    assert len(nb.cells) == 7
+    assert tuple(cell.cell_type for cell in nb.cells) == ("code",) * 4 + ("markdown", "raw") + ("code",)
+
+
+async def test_quit(pilot: textual.pilot.Pilot, mocker: pytest_mock.MockerFixture):
+    app: netbook.JupyterTextualApp = pilot.app
+    app.cells[0].source.text = "asdf"
+    await pilot.pause()
+    assert app.unsaved
+    mock_notify = mocker.Mock()
+    mock_exit = mocker.Mock()
+    app.notify = mock_notify
+    app.exit = mock_exit
+    await pilot.press("escape", "ctrl+q")
+    await pilot.pause()
+    mock_notify.assert_called_once()
+    mock_exit.assert_not_called()
+    await pilot.press("ctrl+q", "ctrl+q")
+    await pilot.pause()
+    mock_exit.assert_called()
 
 
 def test_cmdline(mocker: pytest_mock.MockerFixture):
