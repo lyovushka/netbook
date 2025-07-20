@@ -373,8 +373,8 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         textual.binding.Binding("y", "change_cell_to('code')", "change cell to code"),
         textual.binding.Binding("m", "change_cell_to('markdown')", "change cell to markdown"),
         textual.binding.Binding("r", "change_cell_to('raw')", "change cell to raw"),
-        textual.binding.Binding("k,up", "focus_cell_up", "select cell above"),
-        textual.binding.Binding("j,down", "focus_cell_down", "select cell below"),
+        textual.binding.Binding("k,up", "select_cell_above", "select cell above"),
+        textual.binding.Binding("j,down", "select_cell_below", "select cell below"),
         textual.binding.Binding("K,shift+up", "extend_selected_cells_above", "extend selected cells above"),
         textual.binding.Binding("J,shift+down", "extend_selected_cells_below", "extend selected cells below"),
         textual.binding.Binding(f"{CMDTRL}+a", "select_all_cells", "select all cells"),
@@ -387,7 +387,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         textual.binding.Binding("V", "paste_cells_above", "paste cells above"),
         textual.binding.Binding("v", "paste_cells_below", "paste cells below"),
         textual.binding.Binding("z", "undo_cell_deletion", "undo cell deletion"),
-        textual.binding.Binding("d", "delete_selected_cells", "delete selected cells", key_display="d,d"),
+        textual.binding.Binding("d", "try_delete_selected_cells", "delete selected cells", key_display="d,d"),
         textual.binding.Binding(
             "M",
             "merge_selected_cells",
@@ -404,14 +404,77 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         textual.binding.Binding("ctrl+shift+minus", "split_cell_at_cursor", "split cell at cursor(s)"),
     ]
 
+    def get_system_commands(self, screen: textual.screen.Screen) -> tp.Iterable[textual.app.SystemCommand]:
+        yield textual.app.SystemCommand("change cell to code", "y", lambda: self.action_change_cell_to("code"))
+        yield textual.app.SystemCommand("change cell to markdown", "m", lambda: self.action_change_cell_to("markdown"))
+        yield textual.app.SystemCommand("change cell to raw", "r", lambda: self.action_change_cell_to("raw"))
+        yield textual.app.SystemCommand("clear all cells output", "", self.action_clear_all_cells_output)
+        yield textual.app.SystemCommand("clear cell output", "", self.action_clear_cell_output)
+        yield textual.app.SystemCommand("copy selected cells", "c", self.action_copy_selected_cells)
+        yield textual.app.SystemCommand("cut selected cells", "x", self.action_copy_selected_cells)
+        yield textual.app.SystemCommand("delete cells", "d,d", self.action_delete_selected_cells)
+        yield textual.app.SystemCommand("extend selection above", "K shift+↑", self.action_extend_selected_cells_above)
+        yield textual.app.SystemCommand("extend selection below", "J shift+↓", self.action_extend_selected_cells_below)
+        yield textual.app.SystemCommand("find", "f", self.action_find_and_replace)
+        yield textual.app.SystemCommand("hide all line numbers", "", self.action_hide_all_line_numbers)
+        yield textual.app.SystemCommand("insert cell above", "a", self.action_insert_cell_above)
+        yield textual.app.SystemCommand("insert cell below", "b", self.action_insert_cell_below)
+        yield textual.app.SystemCommand("interrupt the kernel", "i,i", self.action_interrupt_kernel)
+        yield textual.app.SystemCommand("merge cells", "M", self.action_merge_selected_cells)
+        yield textual.app.SystemCommand("move cells down", "shift+^↓", self.action_move_selected_cells_down)
+        yield textual.app.SystemCommand("move cells up", "shift+^↑", self.action_move_selected_cells_up)
+        yield textual.app.SystemCommand("paste cells above", "V", self.action_paste_cells_above)
+        yield textual.app.SystemCommand("paste cells below", "v", self.action_paste_cells_below)
+        yield textual.app.SystemCommand("restart kernel", "0,0", self.action_restart_kernel)
+        yield textual.app.SystemCommand("quit", "^q", self.action_quit)
+        yield textual.app.SystemCommand("quit without saving", "", self.exit)
+        yield textual.app.SystemCommand("restart kernel and run all cells", "", self.action_restart_and_run_all)
+        yield textual.app.SystemCommand("run all cells", "", self.action_run_all_cells)
+        yield textual.app.SystemCommand("run all cells above", "", self.action_run_all_cells_above)
+        yield textual.app.SystemCommand("run all cells below", "", self.action_run_all_cells_below)
+        yield textual.app.SystemCommand("run cell and insert below", "alt+⏎", self.action_run_cell_and_insert_below)
+        yield textual.app.SystemCommand("run cell and select below", "shift+⏎", self.action_run_cell_select_below)
+        yield textual.app.SystemCommand("run selected cell", "^⏎", self.action_run_cell)
+        yield textual.app.SystemCommand("save notebook", "^s", self.action_save)
+        yield textual.app.SystemCommand("select all", "^a", self.action_select_all_cells)
+        yield textual.app.SystemCommand("select next cell", "↓", self.action_select_cell_below)
+        yield textual.app.SystemCommand("select previous cell", "↑", self.action_select_cell_above)
+        yield textual.app.SystemCommand("show all line numbers", "", self.action_show_all_line_numbers)
+        yield textual.app.SystemCommand("show keyboard shortcuts", "h", self.action_show_help_panel)
+        yield textual.app.SystemCommand("split cell at cursor(s)", "shift+^-", self.action_split_cell_at_cursor)
+        yield textual.app.SystemCommand(
+            "toggle all cells output collapsed", "", self.action_toggle_all_cells_output_collapsed
+        )
+        yield textual.app.SystemCommand(
+            "toggle all cells output scrolled", "", self.action_toggle_all_cells_output_scrolled
+        )
+        yield textual.app.SystemCommand("toggle all line numbers", "L", self.action_toggle_line_numbers_in_all_cells)
+        yield textual.app.SystemCommand("toggle cell output", "o", self.action_toggle_output)
+        yield textual.app.SystemCommand("toggle cell scrolling", "O", self.action_toggle_output_scrolling)
+        yield textual.app.SystemCommand("toggle line numbers", "l", self.action_toggle_line_numbers)
+        yield textual.app.SystemCommand("undo cell deletion", "z", self.action_undo_cell_deletion)
+
     def check_action(self, action: str, parameters) -> bool | None:
         if action == "split_cell_at_cursor":
             return self.cells[self.focused_cell_id].source.has_focus_within
         return True
 
+    async def action_clear_all_cells_output(self):
+        for cell in self.cells:
+            if isinstance(cell, CodeCell):
+                await cell.clear_outputs()
+        self.unsaved = True
+
+    async def action_clear_cell_output(self):
+        start_id, end_id = self._get_selected_cells_range()
+        for cell in self.cells[start_id : end_id + 1]:
+            if isinstance(cell, CodeCell):
+                await cell.clear_outputs()
+        self.unsaved = True
+
     def action_quit(self):
         if self.repeat_key_count < 2 and self.unsaved:
-            self.notify("To quit without saving press `ctrl+q` twice", title="Unsaved changed", severity="warning")
+            self.notify("To quit without saving press ctrl+q twice", title="Unsaved changes", severity="warning")
         else:
             self.exit()
 
@@ -463,11 +526,11 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
                     self.unsaved = True
         self._focus_cell(cell_to_focus)
 
-    def action_focus_cell_up(self) -> None:
+    def action_select_cell_above(self) -> None:
         if self.focused_cell_id > 0:
             self._focus_cell(self.cells[self.focused_cell_id - 1])
 
-    def action_focus_cell_down(self) -> None:
+    def action_select_cell_below(self) -> None:
         if self.focused_cell_id + 1 < len(self.cells):
             self._focus_cell(self.cells[self.focused_cell_id + 1])
 
@@ -580,6 +643,9 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         return new_f
 
     @double_press
+    async def action_try_delete_selected_cells(self) -> None:
+        await self.action_delete_selected_cells()
+
     async def action_delete_selected_cells(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         self.cell_deletion_stack.append(
@@ -632,6 +698,12 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
     def action_toggle_line_numbers_in_all_cells(self) -> None:
         self.show_line_numbers = not self.show_line_numbers
 
+    def action_hide_all_line_numbers(self) -> None:
+        self.show_line_numbers = False
+
+    def action_show_all_line_numbers(self) -> None:
+        self.show_line_numbers = True
+
     def action_toggle_output(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         for cell in self.cells[start_id : end_id + 1]:
@@ -642,6 +714,18 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
     def action_toggle_output_scrolling(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         for cell in self.cells[start_id : end_id + 1]:
+            if isinstance(cell, CodeCell):
+                cell.scrolled = not cell.scrolled
+                self.unsaved = True
+
+    def action_toggle_all_cells_output_collapsed(self) -> None:
+        for cell in self.cells:
+            if isinstance(cell, CodeCell):
+                cell.collapsed = not cell.collapsed
+                self.unsaved = True
+
+    def action_toggle_all_cells_output_scrolled(self) -> None:
+        for cell in self.cells:
             if isinstance(cell, CodeCell):
                 cell.scrolled = not cell.scrolled
                 self.unsaved = True
@@ -674,7 +758,20 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
 
     def action_restart_and_run_all(self) -> None:
         self.action_restart_kernel()
+        self.action_run_all_cells()
+
+    def action_run_all_cells(self) -> None:
         for cell in self.cells:
+            cell.execute()
+            self.unsaved = True
+
+    def action_run_all_cells_above(self) -> None:
+        for cell in self.cells[: self.focused_cell_id]:
+            cell.execute()
+            self.unsaved = True
+
+    def action_run_all_cells_below(self) -> None:
+        for cell in self.cells[self.focused_cell_id :]:
             cell.execute()
             self.unsaved = True
 

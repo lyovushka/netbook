@@ -435,6 +435,11 @@ class CodeCell(Cell):
         # update scrolled if necessary
         self.watch_scrolled(self.scrolled)
 
+    async def clear_outputs(self):
+        if self.is_mounted:
+            self.all_outputs_container.remove_children()
+        self.all_outputs = []
+
     def add_output(self, output: Output) -> textual.widget.AwaitMount:
         if self.n_active_executions <= 1:
             self.all_outputs.append(output)
