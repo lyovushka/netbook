@@ -4,7 +4,7 @@ import asyncio
 
 async def test_text_area(pilot, mocker):
     app: netbook.JupyterTextualApp = pilot.app
-    await app.action_run_cell_select_below()
+    await app.action_run_cell_and_select_below()
     await pilot.pause()
     assert len(app.cells) == 2
     assert app.focused_cell_id == 1

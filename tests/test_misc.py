@@ -11,7 +11,8 @@ async def test_smoke(pilot: textual.pilot.Pilot):
 
 async def test_save(pilot_nb: textual.pilot.Pilot, mocker: pytest_mock.MockerFixture):
     mock_write = mocker.patch("nbformat.write")
-    pilot_nb.app.action_save()
+    pilot_nb.app: netbook.JupyterTextualApp
+    pilot_nb.app.action_save_notebook()
     mock_write.assert_called_once()
     assert mock_write.call_args.args[1] == "./tests/test.ipynb"
     nb = mock_write.call_args.args[0]

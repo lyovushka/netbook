@@ -44,6 +44,8 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
 
     CMDTRL = "super" if sys.platform == "darwin" else "ctrl"
 
+    DUMMY_BINDING = "__dummy"
+
     show_line_numbers: textual.reactive.reactive[bool] = textual.reactive.reactive(True, init=False)
 
     def _watch_show_line_numbers(self, show_line_numbers: bool) -> None:
@@ -337,7 +339,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
             yield textual.widgets.Static(" ")
             yield nf(
                 textual.widgets.Button(
-                    "\uf04b Run", action="app.run_cell_select_below", tooltip="run cell, select below"
+                    "\uf04b Run", action="app.run_cell_select_below", tooltip="run cell and select below"
                 )
             )
             yield nf(textual.widgets.Button("\uf04d", action="app.interrupt_kernel", tooltip="interrupt the kernel"))
@@ -364,10 +366,10 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
                 yield Cell.from_nbformat(cell).add_class("focused" if i == 0 else "below_focused")
 
     BINDINGS = [
-        textual.binding.Binding("ctrl+q", "quit", "quit the application"),
+        textual.binding.Binding("ctrl+q", "try_quit", "quit the application"),
         textual.binding.Binding("f", "find_and_replace", "find and replace"),
         textual.binding.Binding(f"{CMDTRL}+shift+f,{CMDTRL}+shift+p,p", "command_palette", "open the command palette"),
-        textual.binding.Binding("shift+enter", "run_cell_select_below", "run cell, select below"),
+        textual.binding.Binding("shift+enter", "run_cell_and_select_below", "run cell and select below"),
         textual.binding.Binding(f"ctrl+enter,{CMDTRL}+enter", "run_cell", "run cell"),
         textual.binding.Binding("alt+enter", "run_cell_and_insert_below", "run cell and insert below"),
         textual.binding.Binding("y", "change_cell_to('code')", "change cell to code"),
@@ -375,84 +377,81 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         textual.binding.Binding("r", "change_cell_to('raw')", "change cell to raw"),
         textual.binding.Binding("k,up", "select_cell_above", "select cell above"),
         textual.binding.Binding("j,down", "select_cell_below", "select cell below"),
-        textual.binding.Binding("K,shift+up", "extend_selected_cells_above", "extend selected cells above"),
-        textual.binding.Binding("J,shift+down", "extend_selected_cells_below", "extend selected cells below"),
+        textual.binding.Binding("K,shift+up", "extend_selection_above", "extend selection above"),
+        textual.binding.Binding("J,shift+down", "extend_selection_below", "extend selection below"),
         textual.binding.Binding(f"{CMDTRL}+a", "select_all_cells", "select all cells"),
         textual.binding.Binding("ctrl+shift+up", "move_selected_cells_up", "move selected cells up"),
         textual.binding.Binding("ctrl+shift+down", "move_selected_cells_down", "move selected cells down"),
         textual.binding.Binding("a", "insert_cell_above", "insert cell above"),
         textual.binding.Binding("b", "insert_cell_below", "insert cell below"),
         textual.binding.Binding("x", "cut_selected_cells", "cut selected cells"),
-        textual.binding.Binding("c", "copy_selected_cells", "copy selected_cells"),
+        textual.binding.Binding("c", "copy_selected_cells", "copy selected cells"),
         textual.binding.Binding("V", "paste_cells_above", "paste cells above"),
         textual.binding.Binding("v", "paste_cells_below", "paste cells below"),
         textual.binding.Binding("z", "undo_cell_deletion", "undo cell deletion"),
         textual.binding.Binding("d", "try_delete_selected_cells", "delete selected cells", key_display="d,d"),
-        textual.binding.Binding(
-            "M",
-            "merge_selected_cells",
-            "merge selected cells, or the current cell with the cell below if only one cell is selected",
-        ),
+        textual.binding.Binding("M", "merge_selected_cells", "merge selected cells, or single cell below"),
         textual.binding.Binding("l", "toggle_line_numbers", "toggle line numbers"),
         textual.binding.Binding("L", "toggle_line_numbers_in_all_cells", "toggle line numbers in all cells"),
         textual.binding.Binding("o", "toggle_output", "toggle output of selected cells"),
         textual.binding.Binding("O", "toggle_output_scrolling", "toggle output scrolling of selected cells"),
-        textual.binding.Binding(f"s,{CMDTRL}+s", "save", "save"),
-        textual.binding.Binding("h", "toggle_help", "toggle help"),
+        textual.binding.Binding(f"s,{CMDTRL}+s", "save_notebook", "save notebook"),
+        textual.binding.Binding("h", "toggle_help", "show keyboard shortcuts"),
         textual.binding.Binding("i", "try_interrupt_kernel", "interrupt the kernel", key_display="i,i"),
         textual.binding.Binding("0", "try_restart_kernel", "restart the kernel", key_display="0,0"),
         textual.binding.Binding("ctrl+shift+minus", "split_cell_at_cursor", "split cell at cursor(s)"),
+        textual.binding.Binding(
+            DUMMY_BINDING, "clear_all_cells_output", "clear all cells output", show=False, system=True
+        ),
+        textual.binding.Binding(DUMMY_BINDING, "clear_cell_output", "clear cell output", show=False, system=True),
+        textual.binding.Binding(
+            DUMMY_BINDING, "hide_all_line_numbers", "hide all line numbers", show=False, system=True
+        ),
+        textual.binding.Binding(DUMMY_BINDING, "quit", "quit the application without saving", show=False, system=True),
+        textual.binding.Binding(
+            DUMMY_BINDING, "restart_and_run_all", "restart kernel and run all cells", show=False, system=True
+        ),
+        textual.binding.Binding(DUMMY_BINDING, "run_all_cells", "run all cells", show=False, system=True),
+        textual.binding.Binding(DUMMY_BINDING, "run_all_cells_above", "run all cells above"),
+        textual.binding.Binding(DUMMY_BINDING, "run_all_cells_below", "run all cells below"),
+        textual.binding.Binding(
+            DUMMY_BINDING, "show_all_line_numbers", "show all line numbers", show=False, system=True
+        ),
+        textual.binding.Binding(
+            DUMMY_BINDING,
+            "toggle_all_cells_output_collapsed",
+            "toggle all cells output collapsed",
+            show=False,
+            system=True,
+        ),
+        textual.binding.Binding(
+            DUMMY_BINDING,
+            "toggle_all_cells_output_scrolled",
+            "toggle all cells output scrolled",
+            show=False,
+            system=True,
+        ),
     ]
 
+    @tp.override
+    def get_key_display(self, binding: textual.binding.Binding) -> str:
+        if binding.key == self.DUMMY_BINDING:
+            return ""
+        return super().get_key_display(binding)
+
     def get_system_commands(self, screen: textual.screen.Screen) -> tp.Iterable[textual.app.SystemCommand]:
-        yield textual.app.SystemCommand("change cell to code", "y", lambda: self.action_change_cell_to("code"))
-        yield textual.app.SystemCommand("change cell to markdown", "m", lambda: self.action_change_cell_to("markdown"))
-        yield textual.app.SystemCommand("change cell to raw", "r", lambda: self.action_change_cell_to("raw"))
-        yield textual.app.SystemCommand("clear all cells output", "", self.action_clear_all_cells_output)
-        yield textual.app.SystemCommand("clear cell output", "", self.action_clear_cell_output)
-        yield textual.app.SystemCommand("copy selected cells", "c", self.action_copy_selected_cells)
-        yield textual.app.SystemCommand("cut selected cells", "x", self.action_copy_selected_cells)
-        yield textual.app.SystemCommand("delete cells", "d,d", self.action_delete_selected_cells)
-        yield textual.app.SystemCommand("extend selection above", "K shift+↑", self.action_extend_selected_cells_above)
-        yield textual.app.SystemCommand("extend selection below", "J shift+↓", self.action_extend_selected_cells_below)
-        yield textual.app.SystemCommand("find", "f", self.action_find_and_replace)
-        yield textual.app.SystemCommand("hide all line numbers", "", self.action_hide_all_line_numbers)
-        yield textual.app.SystemCommand("insert cell above", "a", self.action_insert_cell_above)
-        yield textual.app.SystemCommand("insert cell below", "b", self.action_insert_cell_below)
-        yield textual.app.SystemCommand("interrupt the kernel", "i,i", self.action_interrupt_kernel)
-        yield textual.app.SystemCommand("merge cells", "M", self.action_merge_selected_cells)
-        yield textual.app.SystemCommand("move cells down", "shift+^↓", self.action_move_selected_cells_down)
-        yield textual.app.SystemCommand("move cells up", "shift+^↑", self.action_move_selected_cells_up)
-        yield textual.app.SystemCommand("paste cells above", "V", self.action_paste_cells_above)
-        yield textual.app.SystemCommand("paste cells below", "v", self.action_paste_cells_below)
-        yield textual.app.SystemCommand("restart kernel", "0,0", self.action_restart_kernel)
-        yield textual.app.SystemCommand("quit", "^q", self.action_quit)
-        yield textual.app.SystemCommand("quit without saving", "", self.exit)
-        yield textual.app.SystemCommand("restart kernel and run all cells", "", self.action_restart_and_run_all)
-        yield textual.app.SystemCommand("run all cells", "", self.action_run_all_cells)
-        yield textual.app.SystemCommand("run all cells above", "", self.action_run_all_cells_above)
-        yield textual.app.SystemCommand("run all cells below", "", self.action_run_all_cells_below)
-        yield textual.app.SystemCommand("run cell and insert below", "alt+⏎", self.action_run_cell_and_insert_below)
-        yield textual.app.SystemCommand("run cell and select below", "shift+⏎", self.action_run_cell_select_below)
-        yield textual.app.SystemCommand("run selected cell", "^⏎", self.action_run_cell)
-        yield textual.app.SystemCommand("save notebook", "^s", self.action_save)
-        yield textual.app.SystemCommand("select all", "^a", self.action_select_all_cells)
-        yield textual.app.SystemCommand("select next cell", "↓", self.action_select_cell_below)
-        yield textual.app.SystemCommand("select previous cell", "↑", self.action_select_cell_above)
-        yield textual.app.SystemCommand("show all line numbers", "", self.action_show_all_line_numbers)
-        yield textual.app.SystemCommand("show keyboard shortcuts", "h", self.action_show_help_panel)
-        yield textual.app.SystemCommand("split cell at cursor(s)", "shift+^-", self.action_split_cell_at_cursor)
-        yield textual.app.SystemCommand(
-            "toggle all cells output collapsed", "", self.action_toggle_all_cells_output_collapsed
-        )
-        yield textual.app.SystemCommand(
-            "toggle all cells output scrolled", "", self.action_toggle_all_cells_output_scrolled
-        )
-        yield textual.app.SystemCommand("toggle all line numbers", "L", self.action_toggle_line_numbers_in_all_cells)
-        yield textual.app.SystemCommand("toggle cell output", "o", self.action_toggle_output)
-        yield textual.app.SystemCommand("toggle cell scrolling", "O", self.action_toggle_output_scrolling)
-        yield textual.app.SystemCommand("toggle line numbers", "l", self.action_toggle_line_numbers)
-        yield textual.app.SystemCommand("undo cell deletion", "z", self.action_undo_cell_deletion)
+        desc_to_bindings = {}
+        for key, binding in self._bindings:
+            desc_to_bindings.setdefault(binding.description, []).append(binding)
+
+        for description, bindings in sorted(desc_to_bindings.items()):
+            # Python footgun 101: `bindings` is a loop variable.
+            async def callback(bindings=bindings):
+                await self.run_action(bindings[0].action)
+
+            # dict.fromkeys makes them unique and preserves the order
+            help = " ".join(dict.fromkeys(self.get_key_display(binding) for binding in bindings))
+            yield textual.app.SystemCommand(description, help, callback)
 
     def check_action(self, action: str, parameters) -> bool | None:
         if action == "split_cell_at_cursor":
@@ -472,16 +471,16 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
                 await cell.clear_outputs()
         self.unsaved = True
 
-    def action_quit(self):
+    async def action_try_quit(self):
         if self.repeat_key_count < 2 and self.unsaved:
             self.notify("To quit without saving press ctrl+q twice", title="Unsaved changes", severity="warning")
         else:
-            self.exit()
+            await self.action_quit()
 
     def action_find_and_replace(self) -> None:
         self.notify("Not implemented yet")
 
-    async def action_run_cell_select_below(self) -> None:
+    async def action_run_cell_and_select_below(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         for cell in self.cells[start_id : end_id + 1]:
             cell.execute()
@@ -534,11 +533,11 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         if self.focused_cell_id + 1 < len(self.cells):
             self._focus_cell(self.cells[self.focused_cell_id + 1])
 
-    def action_extend_selected_cells_above(self) -> None:
+    def action_extend_selection_above(self) -> None:
         if self.focused_cell_id > 0:
             self._focus_cell(self.cells[self.focused_cell_id - 1], extend_selection=True)
 
-    def action_extend_selected_cells_below(self) -> None:
+    def action_extend_selection_below(self) -> None:
         if self.focused_cell_id + 1 < len(self.cells):
             self._focus_cell(self.cells[self.focused_cell_id + 1], extend_selection=True)
 
@@ -675,7 +674,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         self._focus_cell(self.cells[start_id])
         self.unsaved = True
 
-    def action_save(self) -> None:
+    def action_save_notebook(self) -> None:
         self.nb = nbformat.v4.new_notebook(
             metadata=dict(
                 kernelspec=dict(

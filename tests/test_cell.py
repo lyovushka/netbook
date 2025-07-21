@@ -146,7 +146,7 @@ async def test_run_cell(pilot, mocker):
         }
     )
 
-    app.action_extend_selected_cells_above()
+    app.action_extend_selection_above()
     await pilot.pause()
     app.action_run_cell()
     tasks = list(pilot.app.kernel_access_queue)
