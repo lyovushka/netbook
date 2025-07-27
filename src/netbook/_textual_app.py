@@ -1,6 +1,7 @@
 import asyncio
 import collections
 import dataclasses
+import enum
 import importlib
 import pathlib
 import sys
@@ -174,8 +175,28 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         self.kernel_access_queue = set()
         self.kernel_state.update("○")
 
-    def _get_selected_cells_range(self) -> (int, int):
+    def _get_selected_cells_range(self) -> tp.Tuple[int, int]:
         return min(self.start_cell_id, self.focused_cell_id), max(self.start_cell_id, self.focused_cell_id)
+
+    class Range(enum.StrEnum):
+        all = "all"
+        selection = "selection"
+        above = "above"
+        below = "below"
+
+    def _get_range_cells(self, range: Range) -> tp.Iterable[Cell]:
+        match range:
+            case self.Range.all:
+                return self.cells
+            case self.Range.selection:
+                start_id, end_id = self._get_selected_cells_range()
+                return self.cells[start_id : end_id + 1]
+            case self.Range.above:
+                return self.cells[: self.focused_cell_id]
+            case self.Range.below:
+                return self.cells[self.focused_cell_id :]
+            case _:
+                assert False, f"Unsupported {range=}"
 
     def _adjust_cell_classes(self, fucused_cell: Cell, input_focused: bool, extend_selection: bool) -> None:
         above_focused = True
@@ -370,7 +391,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         textual.binding.Binding("f", "find_and_replace", "find and replace"),
         textual.binding.Binding(f"{CMDTRL}+shift+f,{CMDTRL}+shift+p,p", "command_palette", "open the command palette"),
         textual.binding.Binding("shift+enter", "run_cell_and_select_below", "run cell and select below"),
-        textual.binding.Binding(f"ctrl+enter,{CMDTRL}+enter", "run_cell", "run cell"),
+        textual.binding.Binding(f"ctrl+enter,{CMDTRL}+enter", "run_cells('selection')", "run cell"),
         textual.binding.Binding("alt+enter", "run_cell_and_insert_below", "run cell and insert below"),
         textual.binding.Binding("y", "change_cell_to('code')", "change cell to code"),
         textual.binding.Binding("m", "change_cell_to('markdown')", "change cell to markdown"),
@@ -392,44 +413,40 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         textual.binding.Binding("d", "try_delete_selected_cells", "delete selected cells", key_display="d,d"),
         textual.binding.Binding("M", "merge_selected_cells", "merge selected cells, or single cell below"),
         textual.binding.Binding("l", "toggle_line_numbers", "toggle line numbers"),
-        textual.binding.Binding("L", "toggle_line_numbers_in_all_cells", "toggle line numbers in all cells"),
-        textual.binding.Binding("o", "toggle_output", "toggle output of selected cells"),
-        textual.binding.Binding("O", "toggle_output_scrolling", "toggle output scrolling of selected cells"),
+        textual.binding.Binding("L", "set_line_numbers_in_all_cells(None)", "toggle line numbers in all cells"),
+        textual.binding.Binding("o", "toggle_output('selection')", "toggle output of selected cells"),
+        textual.binding.Binding(
+            "O", "toggle_output_scrolling('selection')", "toggle output scrolling of selected cells"
+        ),
         textual.binding.Binding(f"s,{CMDTRL}+s", "save_notebook", "save notebook"),
         textual.binding.Binding("h", "toggle_help", "show keyboard shortcuts"),
         textual.binding.Binding("i", "try_interrupt_kernel", "interrupt the kernel", key_display="i,i"),
         textual.binding.Binding("0", "try_restart_kernel", "restart the kernel", key_display="0,0"),
         textual.binding.Binding("ctrl+shift+minus", "split_cell_at_cursor", "split cell at cursor(s)"),
         textual.binding.Binding(
-            DUMMY_BINDING, "clear_all_cells_output", "clear all cells output", show=False, system=True
+            DUMMY_BINDING, "clear_cell_output('all')", "clear all cells output", show=False, system=True
         ),
-        textual.binding.Binding(DUMMY_BINDING, "clear_cell_output", "clear cell output", show=False, system=True),
         textual.binding.Binding(
-            DUMMY_BINDING, "hide_all_line_numbers", "hide all line numbers", show=False, system=True
+            DUMMY_BINDING, "clear_cell_output('selection')", "clear cell output", show=False, system=True
+        ),
+        textual.binding.Binding(
+            DUMMY_BINDING, "set_line_numbers_in_all_cells(False)", "hide all line numbers", show=False, system=True
         ),
         textual.binding.Binding(DUMMY_BINDING, "quit", "quit the application without saving", show=False, system=True),
         textual.binding.Binding(
             DUMMY_BINDING, "restart_and_run_all", "restart kernel and run all cells", show=False, system=True
         ),
-        textual.binding.Binding(DUMMY_BINDING, "run_all_cells", "run all cells", show=False, system=True),
-        textual.binding.Binding(DUMMY_BINDING, "run_all_cells_above", "run all cells above"),
-        textual.binding.Binding(DUMMY_BINDING, "run_all_cells_below", "run all cells below"),
+        textual.binding.Binding(DUMMY_BINDING, "run_cells('all')", "run all cells", show=False, system=True),
+        textual.binding.Binding(DUMMY_BINDING, "run_cells('above')", "run all cells above"),
+        textual.binding.Binding(DUMMY_BINDING, "run_cells('below')", "run all cells below"),
         textual.binding.Binding(
-            DUMMY_BINDING, "show_all_line_numbers", "show all line numbers", show=False, system=True
+            DUMMY_BINDING, "set_line_numbers_in_all_cells(True)", "show all line numbers", show=False, system=True
         ),
         textual.binding.Binding(
-            DUMMY_BINDING,
-            "toggle_all_cells_output_collapsed",
-            "toggle all cells output collapsed",
-            show=False,
-            system=True,
+            DUMMY_BINDING, "toggle_output('all')", "toggle all cells output collapsed", show=False, system=True
         ),
         textual.binding.Binding(
-            DUMMY_BINDING,
-            "toggle_all_cells_output_scrolled",
-            "toggle all cells output scrolled",
-            show=False,
-            system=True,
+            DUMMY_BINDING, "toggle_output_scrolling('all')", "toggle all cells output scrolled", show=False, system=True
         ),
     ]
 
@@ -458,15 +475,8 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
             return self.cells[self.focused_cell_id].source.has_focus_within
         return True
 
-    async def action_clear_all_cells_output(self):
-        for cell in self.cells:
-            if isinstance(cell, CodeCell):
-                await cell.clear_outputs()
-        self.unsaved = True
-
-    async def action_clear_cell_output(self):
-        start_id, end_id = self._get_selected_cells_range()
-        for cell in self.cells[start_id : end_id + 1]:
+    async def action_clear_cell_output(self, range: Range) -> None:
+        for cell in self._get_range_cells(range):
             if isinstance(cell, CodeCell):
                 await cell.clear_outputs()
         self.unsaved = True
@@ -494,11 +504,12 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
             self._focus_cell(self.cells[end_id + 1], input_focused=False)
         self.unsaved = True
 
-    def action_run_cell(self) -> None:
-        start_id, end_id = self._get_selected_cells_range()
-        for cell in self.cells[start_id : end_id + 1]:
+    def action_run_cells(self, range: Range) -> None:
+        cells = self._get_range_cells(range)
+        assert len(cells) > 0
+        for cell in cells:
             cell.execute()
-        self._focus_cell(self.cells[end_id])
+        self._focus_cell(cells[-1])
         self.unsaved = True
 
     async def action_run_cell_and_insert_below(self):
@@ -694,37 +705,18 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         for cell in self.cells[start_id : end_id + 1]:
             cell.source.show_line_numbers = not cell.source.show_line_numbers
 
-    def action_toggle_line_numbers_in_all_cells(self) -> None:
-        self.show_line_numbers = not self.show_line_numbers
+    def action_set_line_numbers_in_all_cells(self, to: None | bool) -> None:
+        # None to toggle
+        self.show_line_numbers = not self.show_line_numbers if to is None else to
 
-    def action_hide_all_line_numbers(self) -> None:
-        self.show_line_numbers = False
-
-    def action_show_all_line_numbers(self) -> None:
-        self.show_line_numbers = True
-
-    def action_toggle_output(self) -> None:
-        start_id, end_id = self._get_selected_cells_range()
-        for cell in self.cells[start_id : end_id + 1]:
+    def action_toggle_output(self, range: Range) -> None:
+        for cell in self._get_range_cells(range):
             if isinstance(cell, CodeCell):
                 cell.collapsed = not cell.collapsed
                 self.unsaved = True
 
-    def action_toggle_output_scrolling(self) -> None:
-        start_id, end_id = self._get_selected_cells_range()
-        for cell in self.cells[start_id : end_id + 1]:
-            if isinstance(cell, CodeCell):
-                cell.scrolled = not cell.scrolled
-                self.unsaved = True
-
-    def action_toggle_all_cells_output_collapsed(self) -> None:
-        for cell in self.cells:
-            if isinstance(cell, CodeCell):
-                cell.collapsed = not cell.collapsed
-                self.unsaved = True
-
-    def action_toggle_all_cells_output_scrolled(self) -> None:
-        for cell in self.cells:
+    def action_toggle_output_scrolling(self, range: Range) -> None:
+        for cell in self._get_range_cells(range):
             if isinstance(cell, CodeCell):
                 cell.scrolled = not cell.scrolled
                 self.unsaved = True
@@ -757,22 +749,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
 
     def action_restart_and_run_all(self) -> None:
         self.action_restart_kernel()
-        self.action_run_all_cells()
-
-    def action_run_all_cells(self) -> None:
-        for cell in self.cells:
-            cell.execute()
-            self.unsaved = True
-
-    def action_run_all_cells_above(self) -> None:
-        for cell in self.cells[: self.focused_cell_id]:
-            cell.execute()
-            self.unsaved = True
-
-    def action_run_all_cells_below(self) -> None:
-        for cell in self.cells[self.focused_cell_id :]:
-            cell.execute()
-            self.unsaved = True
+        self.action_run_cells("all")
 
     async def action_split_cell_at_cursor(self) -> None:
         focused_cell = self.cells[self.focused_cell_id]

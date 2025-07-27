@@ -101,7 +101,7 @@ async def test_run_cell(pilot, mocker):
     )
 
     app.cells[0].source.text = "some code"
-    app.action_run_cell()
+    app.action_run_cells("selection")
     tasks = list(pilot.app.kernel_access_queue)
     assert len(tasks) == 1
     await asyncio.gather(*pilot.app.kernel_access_queue, return_exceptions=True)
@@ -148,7 +148,7 @@ async def test_run_cell(pilot, mocker):
 
     app.action_extend_selection_above()
     await pilot.pause()
-    app.action_run_cell()
+    app.action_run_cells("selection")
     tasks = list(pilot.app.kernel_access_queue)
     assert len(tasks) == 2
     await asyncio.gather(*pilot.app.kernel_access_queue, return_exceptions=True)
@@ -163,9 +163,9 @@ async def test_run_cell(pilot, mocker):
     app.kernel_manager.is_alive = mocker.Mock(side_effect=[True, False])
 
     app.action_select_all_cells()
-    app.action_run_cell()
+    app.action_run_cells("selection")
     app.action_select_all_cells()
-    app.action_run_cell()  # Run them two times
+    app.action_run_cells("selection")  # Run them two times
     tasks = list(pilot.app.kernel_access_queue)
     assert len(tasks) == 4
     await asyncio.gather(*pilot.app.kernel_access_queue, return_exceptions=True)

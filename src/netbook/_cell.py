@@ -195,6 +195,7 @@ class Cell(textual.containers.Container, can_focus=True):
             case "code":
                 cell = CodeCell(source=node.source)
                 cell.execution_count = node.execution_count or " "
+                cell.last_executed = node.source
                 if "metadata" in node:
                     if "collapsed" in node.metadata:
                         cell.collapsed = node.metadata.collapsed
