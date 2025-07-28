@@ -1,6 +1,6 @@
 [project]
 name = "netbook"
-version = "0.1.0"
+version = "0.2.0"
 description = "Jupyter notebook for terminal"
 authors = [{author = "Levon Haykazyan", email = "haykazyan@zoho.com"}]
 readme = "README.md"
