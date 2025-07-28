@@ -195,6 +195,7 @@ class Cell(textual.containers.Container, can_focus=True):
             case "code":
                 cell = CodeCell(source=node.source)
                 cell.execution_count = node.execution_count or " "
+                cell.last_executed = node.source
                 if "metadata" in node:
                     if "collapsed" in node.metadata:
                         cell.collapsed = node.metadata.collapsed
@@ -434,6 +435,11 @@ class CodeCell(Cell):
 
         # update scrolled if necessary
         self.watch_scrolled(self.scrolled)
+
+    async def clear_outputs(self):
+        if self.is_mounted:
+            self.all_outputs_container.remove_children()
+        self.all_outputs = []
 
     def add_output(self, output: Output) -> textual.widget.AwaitMount:
         if self.n_active_executions <= 1:
