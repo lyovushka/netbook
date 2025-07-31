@@ -149,6 +149,13 @@ class CodeTextArea(CellTextArea):
         yield self.completer
         yield self.inspect
 
+    def _on_mount(self, event: textual.events.Mount) -> None:
+        # By default TextArea resets its selection when screen selection starts.
+        # This is a bit inconsistent since two text areas can still have their own selections.
+        # It also causes problems because we scroll to the cursor when the selection changes in a text area.
+        # We disable this behaviour by unsubscribing here.
+        self.call_later(lambda: self.screen.text_selection_started_signal.unsubscribe(self))
+
     # TODO: type annotate
     def with_kernel(f):
         async def new_f(self, *args, **kwargs):
