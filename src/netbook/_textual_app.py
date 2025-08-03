@@ -360,7 +360,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
             yield textual.widgets.Static(" ")
             yield nf(
                 textual.widgets.Button(
-                    "\uf04b Run", action="app.run_cell_select_below", tooltip="run cell and select below"
+                    "\uf04b Run", action="app.run_cell_and_select_below", tooltip="run cell and select below"
                 )
             )
             yield nf(textual.widgets.Button("\uf04d", action="app.interrupt_kernel", tooltip="interrupt the kernel"))
