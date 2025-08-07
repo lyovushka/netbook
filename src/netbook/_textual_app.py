@@ -25,6 +25,7 @@ import tree_sitter
 
 from netbook._cell import Cell, CodeCell, RawCell, MarkdownCell
 from netbook._text_area import CellTextArea
+from netbook._find import Find
 
 # Monkeypatch "double" for a custom border. Not great, but will do for now.
 textual._border.BORDER_CHARS["double"] = (
@@ -88,6 +89,8 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         )
         self.kernel_state = textual.widgets.Static("○")
         self.unsaved_marker = textual.widgets.Static("")
+
+        self.find = Find()
 
         self.repeat_key = None
         self.repeat_key_count = 0
@@ -300,6 +303,8 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
 
     def _on_text_area_changed(self, event: textual.widgets.TextArea.Changed) -> None:
         self.unsaved = True
+        if not self.find.hidden:
+            self.find.update_search_results(False)
 
     def _on_code_cell_new_output(self, message: CodeCell.NewOutput) -> None:
         self.unsaved = True
@@ -309,7 +314,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         region = textual.geometry.Region(text_area._cursor_offset[0], text_area._cursor_offset[1], width=3, height=1)
         widget = text_area
         while widget is not self.scroll:
-            region = region.translate(widget.virtual_region.offset).translate(widget.styles.border.spacing.top_left)
+            region = region.translate(widget.virtual_region.offset).translate(widget.styles.gutter.top_left)
             widget = widget.parent
         self.scroll.scroll_to_region(region, animate=False, immediate=True)
 
@@ -385,10 +390,12 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         with self.scroll:
             for i, cell in enumerate(self.nb.cells):
                 yield Cell.from_nbformat(cell).add_class("focused" if i == 0 else "below_focused")
+        yield self.find
 
     BINDINGS = [
         textual.binding.Binding("ctrl+q", "try_quit", "quit the application"),
-        textual.binding.Binding("f", "find_and_replace", "find and replace"),
+        textual.binding.Binding(f"{CMDTRL}+f", "find_and_replace", "find and replace", priority=True),
+        textual.binding.Binding("f,/", "find_and_replace", "find and replace"),
         textual.binding.Binding(f"{CMDTRL}+shift+f,{CMDTRL}+shift+p,p", "command_palette", "open the command palette"),
         textual.binding.Binding("shift+enter", "run_cell_and_select_below", "run cell and select below"),
         textual.binding.Binding(f"ctrl+enter,{CMDTRL}+enter", "run_cells('selection')", "run cell"),
@@ -488,7 +495,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
             await self.action_quit()
 
     def action_find_and_replace(self) -> None:
-        self.notify("Not implemented yet")
+        self.find.action_show()
 
     async def action_run_cell_and_select_below(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
