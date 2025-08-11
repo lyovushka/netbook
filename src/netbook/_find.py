@@ -108,7 +108,7 @@ class Find(textual.containers.Horizontal, can_focus=True):
 
         try:
             pattern = re.compile(pattern, flags)
-        except re.PatternError:
+        except re.error:
             pass
         else:
             for cell in self.app.cells:
