@@ -17,7 +17,7 @@ if tp.TYPE_CHECKING:
 
 class Find(textual.containers.Horizontal, can_focus=True):
     hidden: textual.reactive.reactive[bool] = textual.reactive.reactive(True)
-    match_index: textual.reactive.reactive[bool | None] = textual.reactive.reactive(None, always_update=True)
+    match_index: textual.reactive.reactive[int | None] = textual.reactive.reactive(None, always_update=True)
 
     BINDINGS = [
         textual.binding.Binding("escape", "dismiss", "dismiss search widget"),
@@ -31,7 +31,7 @@ class Find(textual.containers.Horizontal, can_focus=True):
         else:
             self.remove_class("hidden")
 
-    def watch_match_index(self, match_index: bool | None) -> None:
+    def watch_match_index(self, match_index: int | None) -> None:
         if not self.input.value:
             self.text.update("")
         elif len(self.matches) == 0:
@@ -65,13 +65,14 @@ class Find(textual.containers.Horizontal, can_focus=True):
         yield self.text
         yield nf(textual.widgets.Button("🗙", action="dismiss"))
 
-    def select_match(self, index: int) -> None:
-        assert index < len(self.matches)
+    def select_match(self, index: int | None) -> None:
         self.match_index = index
-        cell, selection = self.matches[index]
-        if isinstance(cell, MarkdownCell):
-            cell.edit_mode = True
-        cell.source.selection = selection
+        if self.match_index is not None:
+            assert self.match_index < len(self.matches)
+            cell, selection = self.matches[self.match_index]
+            if isinstance(cell, MarkdownCell):
+                cell.edit_mode = True
+            cell.source.selection = selection
 
     def on_input_changed(self, event: textual.widgets.Input.Changed) -> None:
         self.update_search_results(select=True)
@@ -92,6 +93,7 @@ class Find(textual.containers.Horizontal, can_focus=True):
     def update_search_results(self, select: bool) -> None:
         self.reset_match()
         self.matches = []
+        self.match_index = None
         if not self.input.value:
             return
 
@@ -104,22 +106,24 @@ class Find(textual.containers.Horizontal, can_focus=True):
         if self.match_case.value:
             flags = re.NOFLAG
 
-        for cell in self.app.cells:
-            self.matches += [
-                (
-                    cell,
-                    textual.widgets.text_area.Selection(
-                        cell.source.document.get_location_from_index(match.start()),
-                        cell.source.document.get_location_from_index(match.end()),
-                    ),
-                )
-                for match in re.finditer(pattern, cell.source.text, flags)
-            ]
-
-        if self.matches and select:
-            self.select_match(0)
+        try:
+            pattern = re.compile(pattern, flags)
+        except re.PatternError:
+            pass
         else:
-            self.match_index = None
+            for cell in self.app.cells:
+                self.matches += [
+                    (
+                        cell,
+                        textual.widgets.text_area.Selection(
+                            cell.source.document.get_location_from_index(match.start()),
+                            cell.source.document.get_location_from_index(match.end()),
+                        ),
+                    )
+                    for match in pattern.finditer(cell.source.text)
+                ]
+
+            self.select_match(0 if self.matches and select else None)
 
     def action_dismiss(self) -> None:
         focused_cell = self.app.cells[self.app.focused_cell_id]
