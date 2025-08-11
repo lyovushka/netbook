@@ -394,8 +394,8 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
 
     BINDINGS = [
         textual.binding.Binding("ctrl+q", "try_quit", "quit the application"),
-        textual.binding.Binding(f"{CMDTRL}+f", "find_and_replace", "find and replace", priority=True),
-        textual.binding.Binding("f,/", "find_and_replace", "find and replace"),
+        textual.binding.Binding(f"{CMDTRL}+f", "find", "find", priority=True),
+        textual.binding.Binding("f,/", "find", "find"),
         textual.binding.Binding(f"{CMDTRL}+shift+f,{CMDTRL}+shift+p,p", "command_palette", "open the command palette"),
         textual.binding.Binding("shift+enter", "run_cell_and_select_below", "run cell and select below"),
         textual.binding.Binding(f"ctrl+enter,{CMDTRL}+enter", "run_cells('selection')", "run cell"),
@@ -494,7 +494,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         else:
             await self.action_quit()
 
-    def action_find_and_replace(self) -> None:
+    def action_find(self) -> None:
         self.find.action_show()
 
     async def action_run_cell_and_select_below(self) -> None:
