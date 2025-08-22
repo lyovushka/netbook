@@ -5,7 +5,7 @@ import asyncio
 import base64
 import dataclasses
 import io
-import typing as tp
+import typing_extensions as tp
 
 import nbformat
 

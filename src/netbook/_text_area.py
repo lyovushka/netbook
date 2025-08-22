@@ -4,7 +4,7 @@ import abc
 import asyncio
 import dataclasses
 import re
-import typing as tp
+import typing_extensions as tp
 
 import rich.text
 

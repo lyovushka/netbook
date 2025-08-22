@@ -5,7 +5,7 @@ description = "Jupyter notebook for terminal"
 authors = [{author = "Levon Haykazyan", email = "haykazyan@zoho.com"}]
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "ipykernel>=6.29.5",
     "jupyter-client>=8.6.3",

@@ -1,5 +1,5 @@
 import re
-import typing as tp
+import typing_extensions as tp
 
 import textual.app
 import textual.binding

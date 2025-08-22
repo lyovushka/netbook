@@ -6,7 +6,7 @@ import importlib
 import pathlib
 import sys
 import time
-import typing as tp
+import typing_extensions as tp
 
 import jupyter_client
 
