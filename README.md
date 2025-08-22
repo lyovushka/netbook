@@ -1,6 +1,7 @@
 ## About
 
-A Jupyter notebook client for your terminal.
+A Jupyter notebook client for your terminal. 
+It aims to emulate the functionality of the classic Jupyter notebook.
 Built on the excellent [textual](https://github.com/Textualize/textual) framework with image support from [textual-image](https://github.com/lnqs/textual-image).
 
 ## Demo
@@ -9,8 +10,14 @@ Built on the excellent [textual](https://github.com/Textualize/textual) framewor
 
 ## Getting started
 
+The easiest way to get started is with `uv`. To try without installing
 ```
-pip install netbook
+uvx --from netbook jupyter-netbook [my_notebook.ipynb]
+```
+
+Or install it with
+```
+uv tool install netbook
 jupyter-netbook [my_notebook.ipynb]
 ```
 
@@ -35,14 +42,53 @@ jupyter-netbook [my_notebook.ipynb]
 
 *A:* You need to have Font Awesome installed. Or you can download [nerd fonts](https://www.nerdfonts.com/) that already have the glyphs patched in.
 
+*Q:* How can I start other kernels?
+
+*A:* You can use `--kernel` argument. It accepts kernel names shown by `jupyter-kernelspec list`.
+
 *Q:* How to remap the keys in my terminal?
 
-*A:* Euporie, a related project, has some [examples](https://euporie.readthedocs.io/en/latest/pages/keybindings.html)
+*A:* Here are snippets for a selection of terminal emulators:
+
+  - Kitty. Add the following to `~/.config/kitty/kitty.conf`
+    ```
+    # Send ctrl+shift+minus to netbook
+    map --when-focus-on title:netbook kitty_mod+minus
+    ```
+  
+  - Wezterm. Add the following to `~/.config/wezterm/wezterm.lua`
+    ```
+    local wezterm = require 'wezterm';
+
+    return {
+      -- ...
+
+      keys = {
+        {key="Enter", mods="CTRL", action=wezterm.action{SendString="\x1b[13;5u"}},
+        {key="Enter", mods="SHIFT", action=wezterm.action{SendString="\x1b[13;2u"}},
+        {key="Enter", mods="ALT", action=wezterm.action{SendString="\x1b[13;3u"}},
+      },
+    }
+    ```
+  - Windows Terminal. Add the following to `settings.json` file
+    ```
+    {
+      // ...
+
+      "keybindings":
+      [
+        { "command": { "action": "sendInput", "input": "\u001b[13;5u" }, "keys": "ctrl+enter" },
+        { "command": { "action": "sendInput", "input": "\u001b[13;2u" }, "keys": "shift+enter" },
+        { "command": { "action": "sendInput", "input": "\u001b[13;3u" }, "keys": "alt+enter" }
+      ]
+    }
+
+
+Euporie, a related project, has some [examples](https://euporie.readthedocs.io/en/latest/pages/keybindings.html)
 
 ## Development
 
-You need to have [uv](https://docs.astral.sh/uv/) installed. To get set up just run
-
+To get set up just run
 ```
 uv sync
 uv run jupyter-netbook
