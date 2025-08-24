@@ -15,9 +15,18 @@ The easiest way to get started is with `uv`. To try without installing
 uvx --from netbook jupyter-netbook [my_notebook.ipynb]
 ```
 
-Or install it with
+To install in the current virtual environment
+```
+uv pip install netbook
+```
+
+Or install it as a standalone tool
 ```
 uv tool install netbook
+```
+
+Run it as follows
+```
 jupyter-netbook [my_notebook.ipynb]
 ```
 
@@ -45,6 +54,10 @@ jupyter-netbook [my_notebook.ipynb]
 *Q:* How can I start other kernels?
 
 *A:* You can use `--kernel` argument. It accepts kernel names shown by `jupyter-kernelspec list`.
+
+*Q*: How to see available keybindings?
+
+*A:* Press 'h' in command mode (i.e. when focus is not in a text area). The keybindings are mostly compatible with the classic Jupyter notebook.
 
 *Q:* How to remap the keys in my terminal?
 
@@ -84,7 +97,7 @@ jupyter-netbook [my_notebook.ipynb]
     }
 
 
-Euporie, a related project, has some [examples](https://euporie.readthedocs.io/en/latest/pages/keybindings.html)
+Euporie, a related project, also has some [examples](https://euporie.readthedocs.io/en/latest/pages/keybindings.html),
 
 ## Development
 
