@@ -76,6 +76,12 @@ async def test_actions(pilot: textual.pilot.Pilot, mocker: pytest_mock.MockerFix
     assert app.cells[2].source.text == "\n\nb"
     assert app.cells[2].has_class("focused")
 
+    # Add a cell at the end
+    await app.action_insert_cell_at_end()
+    await pilot.pause()
+    assert len(app.cells) == 4
+    assert app.cells[3].has_class("focused")
+
 
 async def test_copy_paste(pilot: textual.pilot.Pilot):
     app: netbook.JupyterTextualApp = pilot.app

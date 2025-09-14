@@ -287,3 +287,18 @@ Find {
 	}
 
 }
+
+.click_to_add_cell {
+	width: 100%;
+	background: transparent;
+	border: none;
+	padding: 1;
+	text-opacity: 0%;
+
+	&:hover {
+		text-opacity: 100%;
+		padding: 0;
+		color: darkslategrey;
+		border: round darkslategrey;
+	}
+}

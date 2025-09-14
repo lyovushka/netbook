@@ -84,6 +84,10 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         self.kernel_access_queue: set[asyncio.Future] = set()
 
         self.scroll = textual.containers.Container(classes="mainscroll")
+        self.add_cell_button = textual.widgets.Button(
+            "Click to add a cell.", classes="click_to_add_cell", action="app.insert_cell_at_end"
+        )
+
         self.cell_type_selector = textual.widgets.Select(
             [(x, x.lower()) for x in ["Code", "Markdown", "Raw"]], allow_blank=False, value=self.nb.cells[0].cell_type
         )
@@ -101,7 +105,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
 
     @property
     def cells(self) -> list[Cell]:
-        return self.scroll.children
+        return self.scroll.children[:-1]
 
     def _load_language(self) -> None:
         self.tree_sitter_language, self.language_highlights_query = None, ""
@@ -390,6 +394,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         with self.scroll:
             for i, cell in enumerate(self.nb.cells):
                 yield Cell.from_nbformat(cell).add_class("focused" if i == 0 else "below_focused")
+            yield nf(self.add_cell_button)
         yield self.find
 
     BINDINGS = [
@@ -504,7 +509,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         if end_id + 1 == len(self.cells):
             # Last cell; add a new one.
             below_cell = CodeCell(classes="below_focused")
-            await self.scroll.mount(below_cell)
+            await self.scroll.mount(below_cell, after=end_id)
             self._focus_cell(below_cell, input_focused=True)
         else:
             # Not focusing the source here
@@ -572,6 +577,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
             cells.remove(cell_to_move)
             cells.insert(end_id, cell_to_move)
             mapping = {cell: i for i, cell in enumerate(cells)}
+            mapping.update({self.add_cell_button: len(cells)})
             self.scroll.sort_children(key=mapping.get)
             self.focused_cell_id -= 1
             self.start_cell_id -= 1
@@ -587,6 +593,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
             cells.remove(cell_to_move)
             cells.insert(start_id, cell_to_move)
             mapping = {cell: i for i, cell in enumerate(cells)}
+            mapping.update({self.add_cell_button: len(cells)})
             self.scroll.sort_children(key=mapping.get)
             self.focused_cell_id += 1
             self.start_cell_id += 1
@@ -607,6 +614,12 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         self._focus_cell(new_cell)
         self.unsaved = True
 
+    async def action_insert_cell_at_end(self) -> None:
+        new_cell = CodeCell(classes="below_focused")
+        await self.scroll.mount(new_cell, before=self.add_cell_button)
+        self._focus_cell(new_cell)
+        self.unsaved = True
+
     def action_copy_selected_cells(self) -> None:
         start_id, end_id = self._get_selected_cells_range()
         self.copied_cells_nbformat = [cell.to_nbformat() for cell in self.cells[start_id : end_id + 1]]
@@ -620,7 +633,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         if not self.cells:
             # Ensure there is at least one cell
             new_cell = CodeCell(classes="focused")
-            await self.scroll.mount(new_cell)
+            await self.scroll.mount(new_cell, before=0)
         self._focus_cell(self.cells[min(start_id, len(self.cells) - 1)])
         self.unsaved = True
 
@@ -673,7 +686,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         if not self.cells:
             # Ensure there is at least one cell
             new_cell = CodeCell(classes="focused")
-            await self.scroll.mount(new_cell)
+            await self.scroll.mount(new_cell, before=0)
         self._focus_cell(self.cells[min(start_id, len(self.cells) - 1)])
         self.unsaved = True
 
