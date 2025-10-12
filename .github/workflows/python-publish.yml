@@ -28,6 +28,9 @@ jobs:
       - name: Install the project
         run: uv sync --locked --all-extras --dev
 
+      - name: Freeze dependencis
+        run: uv add -r <(uv export --no-hashes --no-dev --no-emit-workspace)
+
       - name: Build release distributions
         run: uv build
           
