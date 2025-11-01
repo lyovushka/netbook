@@ -101,7 +101,7 @@ class Inspect(textual.containers.ScrollableContainer, PopUpMixin, can_focus=True
         assert self.styles.max_height.is_cells
         return min(
             self.styles.max_height.value,
-            len(str(self.contents.renderable).splitlines())
+            len(str(self.contents.content).splitlines())
             + self.styles.border.spacing.top
             + self.styles.border.spacing.bottom,
         )
