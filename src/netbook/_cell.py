@@ -104,6 +104,7 @@ class DisplayData(Output):
     def __init__(self, data: dict[str, tp.Any], metadata: dict[str, tp.Any]) -> None:
         super().__init__()
         self.data, self.metadata = data, metadata
+        self.app: JupyterTextualApp
 
     @tp.override
     def to_nbformat(self) -> nbformat.NotebookNode:
@@ -124,7 +125,7 @@ class DisplayData(Output):
                     if image_key == "image/svg+xml"
                     else base64.b64decode(self.data[image_key])
                 )
-                image = textual_image.widget.Image(io.BytesIO(image_bytes))
+                image = self.app.image_class(io.BytesIO(image_bytes))
                 # We'll set the width/height explicitly since automatically setting it seems hard / impossible.
                 cell_size = textual_image.widget.get_cell_size()
                 image.styles.width = round(image._image_width / cell_size.width)

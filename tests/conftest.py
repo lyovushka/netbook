@@ -5,6 +5,7 @@ import unittest.mock
 with unittest.mock.patch("sys.__stdout__", None):
     import textual_image.renderable
 import textual_image._terminal
+import textual_image.widget
 
 # Hardcode the cell size - it throws on windows.
 setattr(textual_image._terminal.get_cell_size, "_result", textual_image._terminal.CellSize(10, 20))
@@ -22,7 +23,7 @@ async def pilot(mocker):
     km.kernel_spec.language = "python"
     kc = mocker.Mock()
     kc.execute_interactive = mocker.AsyncMock()
-    app = netbook.JupyterTextualApp(km, kc, "", nb)
+    app = netbook.JupyterTextualApp(km, kc, "", nb, image_class=textual_image.widget.HalfcellImage)
     async with app.run_test() as pilot:
         await pilot.pause()
         yield pilot
@@ -38,7 +39,7 @@ async def pilot_nb(mocker):
     km.kernel_spec.display_name = nb.metadata.kernelspec.display_name
     kc = mocker.Mock()
     kc.execute_interactive = mocker.AsyncMock()
-    app = netbook.JupyterTextualApp(km, kc, nbfile, nb)
+    app = netbook.JupyterTextualApp(km, kc, nbfile, nb, image_class=textual_image.widget.HalfcellImage)
     async with app.run_test() as pilot:
         await pilot.pause()
         yield pilot

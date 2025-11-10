@@ -218,7 +218,7 @@ async def test_load_language(mocker: pytest_mock.MockerFixture):
     km.kernel_spec.language = "julia"
     kc = mocker.Mock()
     kc.execute_interactive = mocker.AsyncMock()
-    app = netbook.JupyterTextualApp(km, kc, "", nb)
+    app = netbook.JupyterTextualApp(km, kc, "", nb, image_class=None)
     assert app.tree_sitter_language is not None
     assert app.language_highlights_query != ""
     async with app.run_test() as pilot:
@@ -228,7 +228,7 @@ async def test_load_language(mocker: pytest_mock.MockerFixture):
     # Test when we can't load the language
     km.kernel_spec.language = "R"
     mocker.patch("netbook._textual_app.JupyterTextualApp.notify")
-    app = netbook.JupyterTextualApp(km, kc, "", nb)
+    app = netbook.JupyterTextualApp(km, kc, "", nb, image_class=None)
     app.notify.assert_called_once_with(
         "Syntax highlighting is not available for R. Try installing the package `tree_sitter_r`"
     )
