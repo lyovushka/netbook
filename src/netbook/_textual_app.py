@@ -70,6 +70,7 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         kernel_client: jupyter_client.AsyncKernelClient,
         nbfile: str,
         nb: nbformat.NotebookNode | None,
+        image_class: type,
     ) -> None:
         super().__init__()
         self.kernel_manager = kernel_manager
@@ -99,6 +100,8 @@ class JupyterTextualApp(textual.app.App, inherit_bindings=False):
         self.repeat_key = None
         self.repeat_key_count = 0
         self.last_key_press_time = time.monotonic()
+
+        self.image_class = image_class
 
         self._load_language()
         self.call_after_refresh(lambda: self.queue_for_kernel(self._initialize_kernel))
