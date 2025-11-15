@@ -5,10 +5,11 @@ import unittest.mock
 with unittest.mock.patch("sys.__stdout__", None):
     import textual_image.renderable
 import textual_image._terminal
-import textual_image.widget
 
 # Hardcode the cell size - it throws on windows.
 setattr(textual_image._terminal.get_cell_size, "_result", textual_image._terminal.CellSize(10, 20))
+
+import textual_image.widget
 
 import netbook
 

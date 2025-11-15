@@ -51,6 +51,7 @@ async def test_output_scroll_collapse(pilot_nb):
 
 async def test_run_cell(pilot, mocker):
     app: netbook.JupyterTextualApp = pilot.app
+    await pilot.pause()
     poller = mocker.patch("zmq.asyncio.Poller")
     poller.return_value.poll = mocker.AsyncMock(return_value={app.kernel_client.iopub_channel.socket: 1})
     app.kernel_client.execute.return_value = "id1"
