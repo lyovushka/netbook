@@ -25,6 +25,7 @@ async def test_non_code_cells(pilot):
 
     app.cell_type_selector.value = "markdown"
     await pilot.pause()
+    await pilot.pause() # fixes the flakiness on windows.
     assert app.cells[0].cell_type() == "markdown"
     app.cells[0].execute()
     app.cells[0].source.text = "asdf"
