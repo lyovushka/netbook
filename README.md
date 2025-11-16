@@ -37,31 +37,31 @@ jupyter-netbook [my_notebook.ipynb]
 | Kitty            | ✅      | ✅ TGP        | ✅ Out of the box        | Remap some keybindings |
 | Foot             | ✅      | ✅ Sixel      | ✅ Out of the box        | Sixel support is flaky |
 | Contour          | ✅      | ✅ Sixel      | ✅ Out of the box        |       |
-| ITerm2           | ✅      | ✅ Sixel      | ✅ Out of the box        | ITerm2 image protocal would probably be supported in the future |
+| ITerm2           | ✅      | ✅ Sixel, TGP | ✅ Out of the box        | ITerm2 image protocal would probably be supported in the future |
 | Wezterm          | ✅      | ✅ TGP        | ✅ Requires remapping    |       |
 | Windows Terminal | ✅      | ✅ Sixel      | ✅ Requires remapping    | Things kind of work, sometimes... | 
-| Ghosty           | 🤷      | ✅ TGP        | ✅ Out of the box        | I expect textual support of ghosty to improve |
+| Ghosty           | ✅      | ✅ TGP        | ✅ Out of the box        |       |
+| Tmux             | ✅      | ✅ Sixel, TGP | ✅ Requires configuration| See the FAQ on configuration |
 | Alacritty        | 🤷      | ❌            | ✅ Requires remapping    | It is quite unlikely that alacritty will support images |
-| Tmux             | 🤷      | ✅ Sixel      | 🤷 Not out of the box    | Not sure how to remap the key bindings |
-| Zellij           | ❌      | ❌            | ✅ Out of the box        | Sixels seems to confuse it quite a bit
+| Zellij           | ❌      | ❌            | ✅ Out of the box        | In theory zellij support sixels, but I couldn't make it work      |
 
 ## Frequently asked questions
 
-*Q:* Why are icons in the toolbar all jumbled up?
+**Q:** Why are icons in the toolbar all jumbled up?
 
-*A:* You need to have Font Awesome installed. Or you can download [nerd fonts](https://www.nerdfonts.com/) that already have the glyphs patched in.
+**A:** You need to have Font Awesome installed. Or you can download [nerd fonts](https://www.nerdfonts.com/) that already have the glyphs patched in.
 
-*Q:* How can I start other kernels?
+**Q:** How can I start other kernels?
 
-*A:* You can use `--kernel` argument. It accepts kernel names shown by `jupyter-kernelspec list`.
+**A:** You can use `--kernel` argument. It accepts kernel names shown by `jupyter-kernelspec list`.
 
-*Q*: How to see available keybindings?
+**Q:** How to see available keybindings?
 
-*A:* Press 'h' in command mode (i.e. when focus is not in a text area). The keybindings are mostly compatible with the classic Jupyter notebook.
+**A:** Press 'h' in command mode (i.e. when focus is not in a text area). The keybindings are mostly compatible with the classic Jupyter notebook.
 
-*Q:* How to remap the keys in my terminal?
+**Q:** How to remap the keys in my terminal?
 
-*A:* Here are snippets for a selection of terminal emulators:
+**A:** Here are snippets for a selection of terminal emulators:
 
   - Kitty. Add the following to `~/.config/kitty/kitty.conf`
     ```
@@ -95,9 +95,39 @@ jupyter-netbook [my_notebook.ipynb]
         { "command": { "action": "sendInput", "input": "\u001b[13;3u" }, "keys": "alt+enter" }
       ]
     }
-
+    ```
 
 Euporie, a related project, also has some [examples](https://euporie.readthedocs.io/en/latest/pages/keybindings.html),
+
+**Q:** Images are not showing up.
+
+**A:** Make sure your terminal has support for sixels or terminal graphics protocol. By default netbook autodetects support. If this fails, you can force the protocol using the `--graphics` option.
+
+**Q:** How to configure tmux?
+
+**A:** Here are some options to make the experience with tmux better.
+
+Enable extended keys such as `ctrl+enter` and `shift+enter`:
+```
+set -g extended-keys always
+set -g extended-keys-format csi-u
+set -as terminal-features 'xterm*:extkeys'
+```
+
+Enable mouse interaction:
+```
+set -g mouse on
+```
+
+Make sure COLORTERM environment variable is properly set. This can be achieved e.g. via:
+```
+set -g update-environment -r
+```
+
+If your terminal supports Terminal Graphic Protocol (aka kitty protocol), then you can use `--graphic tmux-kitty` option in netbook to use the passthrough feature of tmux. As of this writing this works in Kitty, ITerm2 and Ghostty. In order to enable passthrough in tmux, add this to the config:
+```
+set -g allow-passthrough on
+```
 
 ## Development
 
