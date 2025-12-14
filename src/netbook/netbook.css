@@ -59,11 +59,11 @@ Cell {
 	}
 
 	Output {
-		min-width: 1fr;
-		width: auto;
+		width: 1fr;
 		&.stderr {
 			background: maroon;
 		}
+		overflow: auto;
 	}
 
 	Counter {
@@ -161,15 +161,6 @@ Cell {
 			max-height: 18;
 			Horizontal {
 				width: auto;
-				min-width: 1fr;
-			}
-			Vertical {
-				width: auto;
-				min-width: 1fr;
-			}
-			HorizontalScroll {
-				width: auto;
-				min-width: 1fr;
 			}
 		}
 	}

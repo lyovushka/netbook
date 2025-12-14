@@ -94,8 +94,7 @@ class Stream(Output):
         return nbformat.v4.new_output(output_type="stream", name=self.stream_name, text=self.text)
 
     def compose(self) -> tp.Iterable[textual.widgets.Widget]:
-        with textual.containers.HorizontalScroll():
-            yield textual.widgets.Static(self.ansi_to_rich(self.text))
+        yield textual.widgets.Static(self.ansi_to_rich(self.text))
 
 
 class DisplayData(Output):
@@ -117,24 +116,23 @@ class DisplayData(Output):
         return None
 
     def compose(self) -> tp.Iterable[textual.widgets.Widget]:
-        with textual.containers.HorizontalScroll():
-            image_key = self._find_image()
-            if image_key:
-                image_bytes = (
-                    pyvips.Image.svgload_buffer(self.data[image_key].encode()).pngsave_buffer()
-                    if image_key == "image/svg+xml"
-                    else base64.b64decode(self.data[image_key])
-                )
-                image = self.app.image_class(io.BytesIO(image_bytes))
-                # We'll set the width/height explicitly since automatically setting it seems hard / impossible.
-                cell_size = textual_image.widget.get_cell_size()
-                image.styles.width = round(image._image_width / cell_size.width)
-                image.styles.height = round(image._image_height / cell_size.height)
-                yield image
-            elif self.data.get("text/markdown"):
-                yield textual.widgets.Markdown(self.data["text/markdown"])
-            elif self.data.get("text/plain"):
-                yield textual.widgets.Static(self.ansi_to_rich(self.data["text/plain"]))
+        image_key = self._find_image()
+        if image_key:
+            image_bytes = (
+                pyvips.Image.svgload_buffer(self.data[image_key].encode()).pngsave_buffer()
+                if image_key == "image/svg+xml"
+                else base64.b64decode(self.data[image_key])
+            )
+            image = self.app.image_class(io.BytesIO(image_bytes))
+            # We'll set the width/height explicitly since automatically setting it seems hard / impossible.
+            cell_size = textual_image.widget.get_cell_size()
+            image.styles.width = round(image._image_width / cell_size.width)
+            image.styles.height = round(image._image_height / cell_size.height)
+            yield image
+        elif self.data.get("text/markdown"):
+            yield textual.widgets.Markdown(self.data["text/markdown"])
+        elif self.data.get("text/plain"):
+            yield textual.widgets.Static(self.ansi_to_rich(self.data["text/plain"]))
 
 
 class ExecuteResult(DisplayData):
@@ -165,8 +163,7 @@ class Error(Output):
         )
 
     def compose(self) -> tp.Iterable[textual.widgets.Widget]:
-        with textual.containers.HorizontalScroll():
-            yield textual.widgets.Static(rich.text.Text.from_ansi("\n".join(self.traceback)))
+        yield textual.widgets.Static(rich.text.Text.from_ansi("\n".join(self.traceback)))
 
 
 class Cell(textual.containers.Container, can_focus=True):
