@@ -135,6 +135,11 @@ class CellTextArea(textual.widgets.TextArea):
         if not select and self.cursor_location == old_location:
             self.post_message(CellTextArea.CursorOutTop(self))
 
+    @property
+    def is_container(self) -> bool:
+        """We add popups as children."""
+        return True
+
 
 class CodeTextArea(CellTextArea):
     """Extends text area with jupyter completions."""

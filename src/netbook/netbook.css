@@ -113,6 +113,10 @@ Cell {
 		background: midnightblue;
 	}
 
+	ChunkedStatic {
+		width: auto;
+	}
+
 	Container.codeoutput.collapsed {
 		height: 1;
 		Button {

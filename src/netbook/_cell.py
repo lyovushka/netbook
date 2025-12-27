@@ -43,6 +43,31 @@ class Counter(textual.widgets.Static):
         self.update(format.format(self.execution_count))
 
 
+class ChunkedStatic(textual.containers.Container):
+    """This widget splits a static text into a multiple chunks of `textual.widgets.Static` for performance."""
+
+    CHUNK_SIZE = 500
+
+    def __init__(self, text: str) -> None:
+        super().__init__()
+
+        # splitlines - used by rich.text.Text.from_ansi splits on "\r" too.
+        # Some libraries e.g. tqdm relies on "\r" to rerender on the same line. So we split on "\n"-only.
+        lines = text.split("\n")
+        start = 0
+        while start < len(lines) and not lines[start].strip():
+            start += 1
+        end = len(lines) - 1
+        while end >= start and not lines[end].strip():
+            end -= 1
+        decoder = rich.ansi.AnsiDecoder()
+        self.decoded_lines = [decoder.decode_line(line) for line in lines[start : end + 1]]
+
+    def compose(self) -> textual.app.ComposeResult:
+        for i in range(0, len(self.decoded_lines), self.CHUNK_SIZE):
+            yield textual.widgets.Static(rich.text.Text("\n").join(self.decoded_lines[i : i + self.CHUNK_SIZE]))
+
+
 class Output(textual.containers.Container):
     """Base class for code cell output."""
 
@@ -60,24 +85,6 @@ class Output(textual.containers.Container):
     def on_resize(self, event: textual.events.Resize) -> None:
         self.post_message(Output.Resized(self, event.size))
 
-    @staticmethod
-    def ansi_to_rich(text: str, strip: bool = True) -> rich.text.Text:
-        """Convet ansi escaped sequences to rich text.
-
-        Work around some issues with rich.text.Text.from_ansi and optionally strip blank lines from the start and end."""
-
-        # splitlines - used by rich.text.Text.from_ansi splits on "\r" too.
-        # E.g. tqdm relies on "\r" to rerender on the same line. So we split on "\n"-only.
-        lines = text.split("\n")
-        start = 0
-        while strip and start < len(lines) and not lines[start].strip():
-            start += 1
-        end = len(lines) - 1
-        while strip and end >= start and not lines[end].strip():
-            end -= 1
-        decoder = rich.ansi.AnsiDecoder()
-        return rich.text.Text("\n").join(decoder.decode_line(line) for line in lines[start : end + 1])
-
 
 class Stream(Output):
     """Stream output in notebook."""
@@ -94,7 +101,7 @@ class Stream(Output):
         return nbformat.v4.new_output(output_type="stream", name=self.stream_name, text=self.text)
 
     def compose(self) -> tp.Iterable[textual.widgets.Widget]:
-        yield textual.widgets.Static(self.ansi_to_rich(self.text))
+        yield ChunkedStatic(self.text)
 
 
 class DisplayData(Output):
@@ -132,7 +139,7 @@ class DisplayData(Output):
         elif self.data.get("text/markdown"):
             yield textual.widgets.Markdown(self.data["text/markdown"])
         elif self.data.get("text/plain"):
-            yield textual.widgets.Static(self.ansi_to_rich(self.data["text/plain"]))
+            yield ChunkedStatic(self.data["text/plain"])
 
 
 class ExecuteResult(DisplayData):
