@@ -54,10 +54,6 @@ Cell {
 		padding: 0;
 	}
 
-	Static {
-		width: auto;
-	}
-
 	Output {
 		width: 1fr;
 		&.stderr {
@@ -115,6 +111,9 @@ Cell {
 
 	ChunkedStatic {
 		width: auto;
+		Static {
+			width: auto;
+		}
 	}
 
 	Container.codeoutput.collapsed {
